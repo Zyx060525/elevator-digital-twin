@@ -27,7 +27,10 @@ from elevator_twin.model_enhanced import EnhancedElevatorModel
 from elevator_twin.run import sweep
 from elevator_twin import agnes_client
 
-plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
+plt.rcParams["font.sans-serif"] = [
+    "Noto Sans CJK SC", "WenQuanYi Zen Hei", "SimHei", "Microsoft YaHei",
+    "PingFang SC", "DejaVu Sans",
+]
 plt.rcParams["axes.unicode_minus"] = False
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -293,6 +296,7 @@ def agnes():
 
 
 if __name__ == "__main__":
-    print("电梯数字孪生 Web 前端已启动：http://127.0.0.1:5000")
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    print(f"电梯数字孪生 Web 前端已启动：http://127.0.0.1:{port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
 
