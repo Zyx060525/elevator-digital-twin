@@ -1,0 +1,9 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 密钥（严禁提交）
+elevator_twin/.agnes_key
+.agnes_key
+.env

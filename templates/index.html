@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>电梯微空间数字孪生</title>
+<style>
+  :root{
+    --bg:#eef2f8;
+    --card:#ffffff;
+    --line:#e6ebf4;
+    --text:#1a2332;
+    --muted:#8a94a6;
+    --accent:#3b6ff0;
+    --accent-deep:#2b4fd0;
+    --accent-soft:#eaf0ff;
+    --accent2:#f0641f;
+    --green:#16a05d;
+    --shadow-sm:0 1px 2px rgba(23,43,77,.05);
+    --shadow-md:0 8px 24px rgba(23,43,77,.10);
+    --shadow-lg:0 14px 40px rgba(23,43,77,.16);
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+       background:radial-gradient(1200px 500px at 15% -10%,#dbe6ff 0%,transparent 60%),
+                  radial-gradient(1000px 500px at 100% 0%,#e6f4ff 0%,transparent 55%),
+                  var(--bg);
+       color:var(--text);line-height:1.65}
+  header{background:linear-gradient(120deg,#1c2a4a 0%,#2b4fd0 55%,#3b6ff0 100%);color:#fff;
+         padding:30px 36px;position:relative;overflow:hidden;box-shadow:0 4px 24px rgba(23,43,77,.25)}
+  header::after{content:'';position:absolute;inset:0;
+         background:radial-gradient(600px 200px at 80% 120%,rgba(255,255,255,.18),transparent 70%)}
+  header .wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto}
+  header h1{margin:0 0 8px;font-size:27px;letter-spacing:.5px;display:flex;align-items:center;gap:12px}
+  header h1 .logo{font-size:32px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.25))}
+  header p{margin:0;opacity:.88;font-size:14px}
+  header .tags{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+  header .tag{font-size:11px;font-weight:600;padding:4px 11px;border-radius:999px;
+         background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(4px)}
+  .layout{display:grid;grid-template-columns:352px 1fr;gap:22px;padding:24px 36px;max-width:1280px;margin:0 auto}
+  @media(max-width:920px){.layout{grid-template-columns:1fr;padding:18px 16px}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;
+         position:sticky;top:20px;height:fit-content;box-shadow:var(--shadow-md)}
+  .panel h2{margin:0 0 14px;font-size:17px;display:flex;align-items:center;gap:8px}
+  .panel h2::before{content:'';width:4px;height:18px;border-radius:2px;background:linear-gradient(var(--accent),var(--accent-deep))}
+  .field{margin-bottom:11px}
+  .field label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:5px}
+  .field label b{color:var(--text);font-weight:700}
+  .field input{width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:10px;font-size:14px;
+         background:#fafbfd;color:var(--text);transition:border-color .15s,box-shadow .15s,background .15s}
+  .field input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+  .field input[type=range]{padding:0;accent-color:var(--accent);background:transparent;border:none}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .actions{display:flex;flex-direction:column;gap:9px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--line)}
+  button{border:0;border-radius:11px;padding:12px 14px;font-size:14px;cursor:pointer;font-weight:600;
+         transition:transform .12s,box-shadow .12s,background .15s}
+  button:active{transform:translateY(1px)}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-deep));color:#fff;box-shadow:0 6px 16px rgba(59,111,240,.35)}
+  .btn-primary:hover{box-shadow:0 9px 22px rgba(59,111,240,.45);transform:translateY(-1px)}
+  .btn-ghost{background:var(--accent-soft);color:var(--accent)}
+  .btn-ghost:hover{background:#dfe8ff;transform:translateY(-1px)}
+  button:disabled{opacity:.55;cursor:not-allowed;transform:none!important}
+  .results{display:flex;flex-direction:column;gap:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;
+         box-shadow:var(--shadow-sm);transition:box-shadow .2s}
+  .card:hover{box-shadow:var(--shadow-md)}
+  .card h3{margin:0 0 14px;font-size:16px;display:flex;align-items:center;gap:8px}
+  .card h3 .ic{font-size:18px}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+  .metric{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;
+         box-shadow:var(--shadow-sm);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+  .metric:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+  .metric .ic{font-size:20px}
+  .metric .v{font-size:26px;font-weight:800;color:var(--accent);margin-top:6px;line-height:1.2}
+  .metric .v small{font-size:13px;font-weight:500;color:var(--muted)}
+  .metric .k{font-size:12px;color:var(--muted);margin-top:2px}
+  .metric.warn{border-color:#ffd9c2;background:linear-gradient(180deg,#fff,#fff7f2)}
+  .metric.warn .v{color:var(--accent2)}
+  #grid{display:inline-grid;gap:4px;padding:6px;background:#f2f5fa;border-radius:12px}
+  .cell{width:46px;height:46px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+         font-weight:700;font-size:14px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.06)}
+  .replay{display:flex;align-items:center;gap:12px;margin-top:14px}
+  .replay input[type=range]{flex:1;accent-color:var(--accent)}
+  .legend{font-size:12px;color:var(--muted);margin-top:10px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  .legend .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .note{font-size:12px;color:var(--muted);margin-top:4px}
+  img.plot{width:100%;border-radius:10px;border:1px solid var(--line)}
+  table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px;margin-top:12px;overflow:hidden;border-radius:10px}
+  th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:center}
+  th{background:#f2f6ff;color:#33415c;font-weight:700}
+  tbody tr:hover{background:#f7faff}
+  #agnes-text{font-size:14px;background:#fbfcff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-height:44px;color:var(--text)}
+  .error{color:#c0392b;font-size:13px}
+  .hidden{display:none!important}
+
+  /* Tab 切换 */
+  .tabs{display:flex;gap:6px;margin-bottom:16px;background:#edf1f8;border-radius:12px;padding:5px}
+  .tab{flex:1;border:0;background:transparent;border-radius:9px;padding:10px 8px;font-size:13px;font-weight:600;
+         color:var(--muted);cursor:pointer;transition:all .18s}
+  .tab.active{background:#fff;color:var(--accent);box-shadow:0 3px 10px rgba(23,43,77,.12)}
+  .tab:hover:not(.active){color:var(--accent)}
+
+  /* 徽章 / 楼层信息 */
+  .badge{display:inline-block;background:linear-gradient(135deg,var(--accent),var(--accent-deep));color:#fff;
+         font-size:11px;font-weight:600;border-radius:999px;padding:2px 10px;margin-left:8px;vertical-align:middle}
+  .floor-info{font-size:13px;color:var(--accent);font-weight:700;margin-bottom:10px;display:inline-flex;
+         align-items:center;gap:6px;background:var(--accent-soft);padding:5px 12px;border-radius:999px}
+
+  /* markdown 渲染样式 */
+  .md h1,.md h2,.md h3,.md h4{margin:14px 0 8px;line-height:1.45}
+  .md h1{font-size:19px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .md h2{font-size:17px}.md h3{font-size:15px}.md h4{font-size:14px}
+  .md p{margin:7px 0}
+  .md ul,.md ol{margin:7px 0;padding-left:24px}
+  .md li{margin:4px 0}
+  .md li::marker{color:var(--accent)}
+  .md strong{color:#16336e}
+  .md code{background:#eef1f5;border-radius:5px;padding:1px 6px;font-family:Consolas,monospace;font-size:13px}
+
+  /* 加载动画 */
+  .loading{color:var(--muted);display:flex;align-items:center;gap:10px}
+  .spinner{width:18px;height:18px;border:2.5px solid var(--accent-soft);border-top-color:var(--accent);
+         border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1><span class="logo">🛗</span>电梯微空间数字孪生</h1>
+    <p>社交距离 × 交流行为 多智能体仿真 · MESA 建模 · Agnes 智能分析</p>
+    <div class="tags">
+      <span class="tag">U160</span>
+      <span class="tag">多智能体仿真</span>
+      <span class="tag">MESA</span>
+      <span class="tag">Agnes 智能分析</span>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="panel">
+    <h2>仿真参数</h2>
+    <div class="tabs">
+      <button id="tab-basic" class="tab active">基础版 · 网格建模</button>
+      <button id="tab-enhanced" class="tab">增强版 · 真实尺寸+上下客</button>
+    </div>
+
+    <div id="params-basic">
+      <div class="field-row">
+        <div class="field"><label>轿厢宽度（格）<b id="v-width">4</b></label><input id="width" type="number" min="2" max="12" value="4"></div>
+        <div class="field"><label>轿厢深度（格）<b id="v-height">4</b></label><input id="height" type="number" min="2" max="12" value="4"></div>
+      </div>
+      <div class="field"><label>乘客数<b id="v-n">8</b></label><input id="n_passengers" type="number" min="1" max="144" value="8"></div>
+      <div class="field"><label>交流意愿均值<b id="v-w">0.50</b></label><input id="willingness" type="range" min="0" max="1" step="0.05" value="0.5"></div>
+      <div class="field-row">
+        <div class="field"><label>舒适距离（格）<b id="v-comfort">1.5</b></label><input id="comfort_distance" type="number" min="0.5" max="5" step="0.1" value="1.5"></div>
+        <div class="field"><label>交流范围（格）<b id="v-range">1.5</b></label><input id="chat_range" type="number" min="0.5" max="6" step="0.1" value="1.5"></div>
+      </div>
+      <div class="field"><label>交流阈值<b id="v-threshold">1.0</b></label><input id="chat_threshold" type="number" min="0" max="2" step="0.1" value="1.0"></div>
+    </div>
+
+    <div id="params-enhanced" class="hidden">
+      <div class="field-row">
+        <div class="field"><label>轿厢宽（米）<b id="v-width_m">1.6</b></label><input id="width_m" type="number" min="0.8" max="5" step="0.1" value="1.6"></div>
+        <div class="field"><label>轿厢深（米）<b id="v-depth_m">1.4</b></label><input id="depth_m" type="number" min="0.8" max="5" step="0.1" value="1.4"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>网格粒度（米）<b id="v-cell_size">0.4</b></label><input id="cell_size" type="number" min="0.1" max="1" step="0.05" value="0.4"></div>
+        <div class="field"><label>楼层数<b id="v-n_floors">6</b></label><input id="n_floors" type="number" min="2" max="40" value="6"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>到站间隔（步）<b id="v-board_interval">5</b></label><input id="board_interval" type="number" min="1" max="50" value="5"></div>
+        <div class="field"><label>额定乘客数<b id="v-max_passengers">6</b></label><input id="max_passengers" type="number" min="1" max="40" value="6"></div>
+      </div>
+      <div class="field"><label>交流意愿均值<b id="v-w2">0.50</b></label><input id="willingness2" type="range" min="0" max="1" step="0.05" value="0.5"></div>
+      <div class="field-row">
+        <div class="field"><label>舒适距离（米）<b id="v-comfort_m">1.0</b></label><input id="comfort_distance_m" type="number" min="0.3" max="2" step="0.1" value="1.0"></div>
+        <div class="field"><label>交流范围（米）<b id="v-chat_range_m">0.8</b></label><input id="chat_range_m" type="number" min="0.3" max="2" step="0.1" value="0.8"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>排斥强度<b id="v-repulsion">1.0</b></label><input id="repulsion_strength" type="number" min="0" max="5" step="0.1" value="1.0"></div>
+        <div class="field"><label>吸引强度<b id="v-attraction">0.5</b></label><input id="attraction_strength" type="number" min="0" max="5" step="0.1" value="0.5"></div>
+      </div>
+      <div class="field"><label>交流阈值<b id="v-threshold2">1.0</b></label><input id="chat_threshold2" type="number" min="0" max="2" step="0.1" value="1.0"></div>
+    </div>
+
+    <div class="field-row">
+      <div class="field"><label>仿真步数<b id="v-steps">30</b></label><input id="steps" type="number" min="1" max="200" value="30"></div>
+      <div class="field"><label>随机种子<b id="v-seed">42</b></label><input id="seed" type="number" min="0" value="42"></div>
+    </div>
+
+    <div class="actions">
+      <button id="btn-run" class="btn-primary">▶ 运行仿真</button>
+      <button id="btn-sweep" class="btn-ghost">批量实验（对比表）</button>
+      <button id="btn-agnes" class="btn-ghost">Agnes 智能分析</button>
+    </div>
+  </aside>
+  <section class="results">
+    <div id="metrics" class="metrics"></div>
+
+    <div class="card">
+      <h3><span class="ic">🧭</span>空间快照（颜色 = 最近邻距离：红=拥挤 · 绿=宽松）</h3>
+      <div id="floor-info" class="floor-info hidden"></div>
+      <div id="grid"></div>
+      <div class="replay">
+        <button id="btn-play" class="btn-ghost">▶ 回放</button>
+        <input id="frame-range" type="range" min="0" max="0" value="0">
+        <span id="frame-label" class="note">第 0 步</span>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#4a90d9"></span>P 普通乘客</span>
+        <span><span class="dot" style="background:#f5a623"></span>C 交流中</span>
+        <span><span class="dot" style="background:#eef1f4;border:1px solid #d5dbe4"></span>空位</span>
+        <span>颜色深浅 = 最近邻距离（红=拥挤，绿=宽松）</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">📈</span>指标曲线</h3>
+      <img id="curve-img" class="plot hidden" alt="指标曲线">
+    </div>
+
+    <div class="card" id="sweep-card">
+      <h3><span class="ic">🔬</span>批量实验：交流意愿 × 乘客数</h3>
+      <img id="sweep-plot" class="plot hidden" alt="对比图">
+      <div id="sweep-table"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🤖</span>Agnes 智能分析 <span class="badge" id="agnes-badge">agnes-3.0-flash</span></h3>
+      <div id="agnes-text">运行一次仿真后点击「Agnes 智能分析」，让 Agnes 模型解读指标并给出治理策略。</div>
+    </div>
+  </section>
+</main>
+<script>
+let currentModel = 'basic';
+let lastMetrics = null;
+let lastFrames = null;
+let lastFloors = null;
+let lastPassengers = null;
+let lastUnit = 'grid';
+let playing = false;
+let playTimer = null;
+
+const $ = (id) => document.getElementById(id);
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function mdToHtml(md){
+  if(!md) return '';
+  const lines = md.split(/\r?\n/);
+  let html = '';
+  let inUl = false, inOl = false;
+  const flush = () => { if(inUl){ html += '</ul>'; inUl = false; } if(inOl){ html += '</ol>'; inOl = false; } };
+  const inline = (s) => {
+    s = escapeHtml(s);
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    return s;
+  };
+  for(const raw of lines){
+    const t = raw.trim();
+    if(!t){ flush(); continue; }
+    let m = t.match(/^(#{1,6})\s+(.*)$/);
+    if(m){ flush(); const n = m[1].length; html += `<h${n}>${inline(m[2])}</h${n}>`; continue; }
+    m = t.match(/^[-*+]\s+(.*)$/);
+    if(m){ if(!inUl){ flush(); html += '<ul>'; inUl = true; } html += `<li>${inline(m[1])}</li>`; continue; }
+    m = t.match(/^\d+[.)]\s+(.*)$/);
+    if(m){ if(!inOl){ flush(); html += '<ol>'; inOl = true; } html += `<li>${inline(m[1])}</li>`; continue; }
+    flush();
+    html += `<p>${inline(t)}</p>`;
+  }
+  flush();
+  return html;
+}
+
+function heatColor(d, unit){
+  if(d == null) return '#eef1f4';
+  let t;
+  if(unit === 'm'){ t = Math.max(0, Math.min(1, (d - 0.3) / 0.9)); }
+  else { t = Math.max(0, Math.min(1, (d - 1) / 1.5)); }
+  const r = Math.round(235 - 160*t), g = Math.round(90 + 120*t), b = Math.round(70 + 40*t);
+  return `rgb(${r},${g},${b})`;
+}
+
+function cellSize(h, w){
+  return Math.max(24, Math.min(48, Math.floor(460 / Math.max(w, h))));
+}
+
+function renderGrid(grid){
+  const el = $('grid');
+  const h = grid.length, w = grid[0].length, s = cellSize(h, w);
+  el.style.gridTemplateColumns = `repeat(${w}, ${s}px)`;
+  el.innerHTML = '';
+  grid.forEach(row => row.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'cell';
+    div.style.width = div.style.height = s + 'px';
+    div.style.fontSize = Math.max(11, s * 0.4) + 'px';
+    if(c.s === '.'){ div.style.background = heatColor(null, lastUnit); }
+    else {
+      div.style.background = heatColor(c.d, lastUnit);
+      div.textContent = c.s;
+      div.style.color = (c.d != null && (lastUnit === 'm' ? c.d > 0.7 : c.d > 1.6)) ? '#17341f' : '#fff';
+      if(c.d != null) div.title = `最近邻距离 ${c.d} ${lastUnit === 'm' ? '米' : '格'}`;
+    }
+    el.appendChild(div);
+  }));
+}
+
+function renderFrame(snapshot){
+  const el = $('grid');
+  const h = snapshot.length, w = snapshot[0].length, s = cellSize(h, w);
+  el.style.gridTemplateColumns = `repeat(${w}, ${s}px)`;
+  el.innerHTML = '';
+  snapshot.forEach(row => [...row].forEach(ch => {
+    const div = document.createElement('div');
+    div.className = 'cell';
+    div.style.width = div.style.height = s + 'px';
+    div.style.fontSize = Math.max(11, s * 0.4) + 'px';
+    if(ch === '.'){ div.style.background = '#eef1f4'; }
+    else { div.style.background = ch === 'C' ? '#f5a623' : '#4a90d9'; div.style.color = '#fff'; div.textContent = ch; }
+    el.appendChild(div);
+  }));
+}
+
+function renderMetrics(m){
+  let items;
+  if(currentModel === 'enhanced'){
+    items = [
+      ['📏','平均最近邻距离', m.avg_nearest_distance_m, 'm', m.avg_nearest_distance_m < 1.0],
+      ['📐','最小最近邻距离', m.min_nearest_distance_m, 'm', false],
+      ['⚠️','社交距离违规率', (m.violation_rate * 100).toFixed(1), '%', m.violation_rate >= 0.5],
+      ['💬','交流对数', m.chat_pairs, '', false],
+      ['👥','当前乘客数', m.current_passengers, '人', false],
+      ['🏢','当前楼层', m.current_floor, '层', false],
+    ];
+  } else {
+    items = [
+      ['📏','平均最近邻距离', m.avg_nearest_distance, '格', false],
+      ['📐','最小最近邻距离', m.min_nearest_distance, '格', false],
+      ['⚠️','社交距离违规率', (m.violation_rate * 100).toFixed(1), '%', m.violation_rate >= 0.5],
+      ['💬','交流对数', m.chat_pairs, '', false],
+      ['↔️','交流对平均距离', m.chat_pair_distance, '格', false],
+    ];
+  }
+  $('metrics').innerHTML = items.map(([ic, k, v, u, warn]) =>
+    `<div class="metric${warn ? ' warn' : ''}"><div class="ic">${ic}</div><div class="v">${v}${u ? '<small>' + u + '</small>' : ''}</div><div class="k">${k}</div></div>`
+  ).join('');
+}
+
+function readParams(){
+  const base = { steps: +$('steps').value, seed: +$('seed').value };
+  if(currentModel === 'enhanced'){
+    return Object.assign(base, {
+      width_m: +$('width_m').value, depth_m: +$('depth_m').value,
+      cell_size: +$('cell_size').value, n_floors: +$('n_floors').value,
+      board_interval: +$('board_interval').value, max_passengers: +$('max_passengers').value,
+      chat_willingness_mean: +$('willingness2').value,
+      comfort_distance_m: +$('comfort_distance_m').value,
+      chat_range_m: +$('chat_range_m').value, chat_threshold: +$('chat_threshold2').value,
+      repulsion_strength: +$('repulsion_strength').value,
+      attraction_strength: +$('attraction_strength').value,
+    });
+  }
+  return Object.assign(base, {
+    width: +$('width').value, height: +$('height').value,
+    n_passengers: +$('n_passengers').value,
+    chat_willingness_mean: +$('willingness').value,
+    comfort_distance: +$('comfort_distance').value,
+    chat_range: +$('chat_range').value, chat_threshold: +$('chat_threshold').value,
+  });
+}
+
+async function post(url, body){
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const d = await r.json();
+  if(!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+  return d;
+}
+async function runSimulate(){
+  const btn = $('btn-run'); btn.disabled = true; btn.textContent = '运行中…';
+  try{
+    const url = currentModel === 'enhanced' ? '/api/simulate_enhanced' : '/api/simulate';
+    const d = await post(url, readParams());
+    lastMetrics = d.metrics; lastFrames = d.frames;
+    lastFloors = d.floors || null; lastPassengers = d.passengers || null;
+    lastUnit = d.unit || 'grid';
+    renderMetrics(d.metrics);
+    renderGrid(d.grid);
+    $('curve-img').src = d.curve;
+    $('curve-img').classList.remove('hidden');
+    $('frame-range').max = d.frames.length - 1;
+    $('frame-range').value = d.frames.length - 1;
+    $('frame-label').textContent = '第 ' + (d.frames.length - 1) + ' 步';
+    updateFloorInfo(d.frames.length - 1);
+    stopPlay();
+  }catch(e){ $('metrics').innerHTML = `<div class="error">${e.message}</div>`; }
+  finally{ btn.disabled = false; btn.textContent = '▶ 运行仿真'; }
+}
+
+function updateFloorInfo(i){
+  const el = $('floor-info');
+  if(currentModel === 'enhanced' && lastFloors){
+    const p = lastPassengers ? lastPassengers[i] : lastMetrics.current_passengers;
+    el.textContent = `第 ${lastFloors[i]} 层 · 乘客 ${p} 人`;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
+async function runSweep(){
+  const btn = $('btn-sweep'); btn.disabled = true; btn.textContent = '运行中…';
+  try{
+    const d = await post('/api/sweep', {steps: +$('steps').value, seed: +$('seed').value});
+    $('sweep-plot').src = d.plot; $('sweep-plot').classList.remove('hidden');
+    const cols = ['乘客数','交流意愿','平均最近邻距离','社交距离违规率','交流对数'];
+    let html = '<table><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+    d.table.forEach(r => { html += '<tr>' + cols.map(c => `<td>${r[c]}</td>`).join('') + '</tr>'; });
+    html += '</table>';
+    $('sweep-table').innerHTML = html;
+  }catch(e){ $('sweep-table').innerHTML = `<div class="error">${e.message}</div>`; }
+  finally{ btn.disabled = false; btn.textContent = '批量实验（对比表）'; }
+}
+
+async function runAgnes(){
+  const btn = $('btn-agnes'); btn.disabled = true; btn.textContent = 'Agnes 思考中…';
+  const el = $('agnes-text');
+  try{
+    if(!lastMetrics){ el.textContent = '请先运行一次仿真，再让 Agnes 分析。'; return; }
+    el.classList.remove('md', 'error');
+    el.classList.add('loading');
+    el.innerHTML = '<span class="spinner"></span>正在调用 Agnes 模型…';
+    const d = await post('/api/agnes', {mode: 'analyze', metrics: lastMetrics});
+    el.classList.remove('loading');
+    el.classList.add('md');
+    el.innerHTML = mdToHtml(d.text);
+  }catch(e){
+    el.classList.remove('loading', 'md');
+    el.classList.add('error');
+    el.textContent = e.message;
+  }
+  finally{ btn.disabled = false; btn.textContent = 'Agnes 智能分析'; }
+}
+
+function stopPlay(){
+  playing = false; clearInterval(playTimer);
+  $('btn-play').textContent = '▶ 回放';
+}
+function play(){
+  if(!lastFrames || !lastFrames.length) return;
+  if(playing){ stopPlay(); return; }
+  playing = true; $('btn-play').textContent = '⏸ 暂停';
+  let i = +$('frame-range').value;
+  playTimer = setInterval(() => {
+    i = (i + 1) % lastFrames.length;
+    $('frame-range').value = i;
+    $('frame-label').textContent = '第 ' + i + ' 步';
+    renderFrame(lastFrames[i]);
+    updateFloorInfo(i);
+  }, 220);
+}
+
+function switchModel(m){
+  currentModel = m;
+  $('tab-basic').classList.toggle('active', m === 'basic');
+  $('tab-enhanced').classList.toggle('active', m === 'enhanced');
+  $('params-basic').classList.toggle('hidden', m !== 'basic');
+  $('params-enhanced').classList.toggle('hidden', m !== 'enhanced');
+  $('btn-sweep').classList.toggle('hidden', m !== 'basic');
+  $('sweep-card').classList.toggle('hidden', m !== 'basic');
+  $('metrics').innerHTML = '';
+  $('grid').innerHTML = '';
+  $('curve-img').classList.add('hidden');
+  lastMetrics = null; lastFrames = null; lastFloors = null;
+  $('floor-info').classList.add('hidden');
+  stopPlay();
+}
+
+$('tab-basic').onclick = () => switchModel('basic');
+$('tab-enhanced').onclick = () => switchModel('enhanced');
+$('btn-run').onclick = runSimulate;
+$('btn-sweep').onclick = runSweep;
+$('btn-agnes').onclick = runAgnes;
+$('btn-play').onclick = play;
+$('frame-range').oninput = function(){
+  if(lastFrames){
+    renderFrame(lastFrames[+this.value]);
+    $('frame-label').textContent = '第 ' + this.value + ' 步';
+    updateFloorInfo(+this.value);
+  }
+};
+
+const labelMap = {
+  width:'v-width', height:'v-height', n_passengers:'v-n',
+  comfort_distance:'v-comfort', chat_range:'v-range', chat_threshold:'v-threshold',
+  width_m:'v-width_m', depth_m:'v-depth_m', cell_size:'v-cell_size',
+  n_floors:'v-n_floors', board_interval:'v-board_interval', max_passengers:'v-max_passengers',
+  comfort_distance_m:'v-comfort_m', chat_range_m:'v-chat_range_m',
+  repulsion_strength:'v-repulsion', attraction_strength:'v-attraction',
+  chat_threshold2:'v-threshold2', steps:'v-steps', seed:'v-seed',
+};
+Object.entries(labelMap).forEach(([id, lid]) => {
+  const el = $(id), label = $(lid);
+  el.addEventListener('input', () => { label.textContent = el.value; });
+});
+$('willingness').addEventListener('input', function(){ $('v-w').textContent = (+this.value).toFixed(2); });
+$('willingness2').addEventListener('input', function(){ $('v-w2').textContent = (+this.value).toFixed(2); });
+</script>
+</body>
+</html>
+
+
+
+
