@@ -77,9 +77,12 @@ python webapp.py
 | 字段 | 填写内容 |
 |---|---|
 | Base directory | 留空（仓库根目录） |
-| Build command | `python build_static.py` |
+| Build command | `python build_static.py \|\| python3 build_static.py` |
 | Publish directory | `public` |
-| Functions directory | 留空（本项目不使用 Netlify Functions） |
+| Functions directory | 留空（本项目不使用 Netlify Functions；保持默认 `netlify/functions` 也无妨） |
+
+> 仓库内已有 `netlify.toml`，**配置文件里的值优先于导入表单**，所以表单留空也能正确构建；
+> 照上表填写只是为了对齐，两边写一样的值即可。
 
 > `netlify.toml` 的构建命令带了 `\|\| python3 build_static.py` 兜底；本地也可直接执行：
 
@@ -96,8 +99,16 @@ Netlify 域名与 Render 域名不同，需要指明后端地址，三种方式�
 同域部署（例如直接访问 Render 的站点地址）时**无需任何配置**，前端自动请求同域 `/api/*`。
 
 ### 常见问题
-- **Netlify 构建日志报 Python 版本错误**：仓库根目录的 `runtime.txt` 是 Render 格式（`python-3.11.0`）。
-  删除该文件即可 —— `render.yaml` 里已用环境变量 `PYTHON_VERSION` 声明同一版本，Netlify 侧也在 `netlify.toml` 中指定。
+- **Netlify 构建日志报 `mise ERROR failed to install python-3.11.0`**：Netlify 新构建镜像用
+  **mise** 管理语言版本，会读取仓库根目录的 `runtime.txt`，且官方要求该文件
+  **只写版本号（`x.y`，不能带 `python-` 前缀、不能有结尾换行）**。
+  本仓库已删除 `runtime.txt`，两个平台改用环境变量各自声明版本：
+  Netlify 侧见 `netlify.toml` 的 `PYTHON_VERSION = "3.11"`，Render 侧见 `render.yaml` 的
+  `PYTHON_VERSION = 3.11.0`。若确需保留 `runtime.txt`，内容必须写成 `3.11.0`
+  （注意 Render/Heroku 习惯的 `python-3.11.0` 与 Netlify 的要求互斥，两个平台请各用环境变量）。
+- **Netlify 构建稍慢**：构建镜像检测到根目录有 `requirements.txt` 会自动 `pip install`
+  （Flask/mesa/matplotlib 等），而前端其实只需复制一个 HTML 文件。想加速可把依赖文件改名
+  （如 `backend-requirements.txt`）并同步修改 `render.yaml` 的 `buildCommand`，本仓库为省事未做改动。
 - **页面能打开，但点按钮提示「连不上后端」**：静态前端找不到 Flask 后端，按上面第 3 步用 `?api=` 指定后端地址。
 - **图表中文变方块**：后端需要 CJK 字体；`render.yaml` 里已 `apt-get install fonts-noto-cjk`，换平台请自行安装字体。
 
