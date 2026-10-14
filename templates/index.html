@@ -95,6 +95,18 @@
   .error{color:#c0392b;font-size:13px}
   .hidden{display:none!important}
 
+  /* 引擎状态条（Python 后端 / 浏览器内置引擎） */
+  .engine-box{margin-top:14px;padding:10px 12px;border:1px dashed var(--line);border-radius:12px;background:#fbfcff}
+  .engine-row{display:flex;align-items:center;gap:8px}
+  .engine-row + .engine-row{margin-top:8px}
+  .engine-badge{font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:#eef2ff;color:#3b4bd0;white-space:nowrap}
+  .engine-badge.ok{background:#e6f8ef;color:#0f7a4a}
+  .engine-badge.alt{background:#fff4e5;color:#a05a00}
+  .btn-mini{padding:5px 10px;font-size:12px;border-radius:8px}
+  .api-input{flex:1;min-width:0;padding:6px 9px;font-size:12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--text)}
+  .engine-note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px}
+  .engine-note.warn{color:#a05a00}
+
   /* Tab 切换 */
   .tabs{display:flex;gap:6px;margin-bottom:16px;background:#edf1f8;border-radius:12px;padding:5px}
   .tab{flex:1;border:0;background:transparent;border-radius:9px;padding:10px 8px;font-size:13px;font-weight:600;
@@ -196,6 +208,18 @@
       <button id="btn-run" class="btn-primary">▶ 运行仿真</button>
       <button id="btn-sweep" class="btn-ghost">批量实验（对比表）</button>
       <button id="btn-agnes" class="btn-ghost">Agnes 智能分析</button>
+    </div>
+
+    <div class="engine-box">
+      <div class="engine-row">
+        <span id="engine-badge" class="engine-badge">检测中…</span>
+        <button id="btn-api-check" class="btn-ghost btn-mini">重新检测后端</button>
+      </div>
+      <div class="engine-row">
+        <input id="api-input" class="api-input" type="text" placeholder="Python 后端地址（可选）https://xxx.onrender.com">
+        <button id="btn-api-save" class="btn-ghost btn-mini">保存</button>
+      </div>
+      <div id="engine-note" class="engine-note">检测不到 Python 后端时自动使用浏览器内置引擎（离线模式），模型规则与指标口径与 Python 版一致。</div>
     </div>
   </aside>
   <section class="results">
@@ -377,6 +401,902 @@ function readParams(){
   });
 }
 
+/* ============================================================================
+   浏览器内置引擎（离线模式）—— elevator_twin 的零依赖 JS 移植
+   ---------------------------------------------------------------------------
+   背景：Netlify 等纯静态托管只能放前端，跑不了 Flask + mesa + matplotlib。
+        一旦 Python 后端不可用，页面就点不出结果。这里把基础版 / 增强版模型
+        原样移植成零依赖 JS：检测不到后端时自动接管，让在线链接真正跑得动。
+
+   一致性：随机数按 CPython random.Random 逐位复刻
+        （MT19937 + init_by_array 播种 + genrand_res53 + _randbelow/choice/shuffle/gauss），
+        模型规则、指标口径、DataCollector 采集时机均与 Python 版一一对应，
+        因此同一组参数 + 同一种子下，指标与 Python 后端一致，可交叉校验。
+   ============================================================================ */
+
+// ---------- A. Python 兼容随机数（算法同 CPython random.Random） ----------
+function jsBitLength(n){
+  let k = 0;
+  while(n > 0){ k++; n = Math.floor(n / 2); }
+  return k;
+}
+
+class PyRandom {
+  constructor(seed){
+    this.mt = new Uint32Array(624);
+    this.mti = 624;
+    this.gaussNext = null;
+    this.seed(seed);
+  }
+  /** 同 random.Random(seed)：整数种子按小端 32 位字拆分后 init_by_array 播种。 */
+  seed(a){
+    let n = Math.abs(Math.trunc(a));
+    const key = [];
+    if(n === 0){ key.push(0); }
+    while(n > 0){ key.push(n % 4294967296 >>> 0); n = Math.floor(n / 4294967296); }
+    this._initByArray(key);
+    this.gaussNext = null;
+  }
+  _initGenrand(s){
+    this.mt[0] = s >>> 0;
+    for(let i = 1; i < 624; i++){
+      const prev = this.mt[i - 1];
+      this.mt[i] = (Math.imul(1812433253, prev ^ (prev >>> 30)) + i) >>> 0;
+    }
+    this.mti = 624;
+  }
+  _initByArray(key){
+    this._initGenrand(19650218);
+    let i = 1, j = 0, k = Math.max(624, key.length);
+    for(; k; k--){
+      const prev = this.mt[i - 1];
+      this.mt[i] = ((this.mt[i] ^ Math.imul(prev ^ (prev >>> 30), 1664525)) + key[j] + j) >>> 0;
+      i++; j++;
+      if(i >= 624){ this.mt[0] = this.mt[623]; i = 1; }
+      if(j >= key.length) j = 0;
+    }
+    for(k = 623; k; k--){
+      const prev = this.mt[i - 1];
+      this.mt[i] = ((this.mt[i] ^ Math.imul(prev ^ (prev >>> 30), 1566083941)) - i) >>> 0;
+      i++;
+      if(i >= 624){ this.mt[0] = this.mt[623]; i = 1; }
+    }
+    this.mt[0] = 0x80000000;
+  }
+  _genUint32(){
+    const mt = this.mt;
+    if(this.mti >= 624){
+      for(let k = 0; k < 624; k++){
+        const y = ((mt[k] & 0x80000000) | (mt[(k + 1) % 624] & 0x7fffffff)) >>> 0;
+        let next = (mt[(k + 397) % 624] ^ (y >>> 1)) >>> 0;
+        if(y & 1) next = (next ^ 0x9908b0df) >>> 0;
+        mt[k] = next;
+      }
+      this.mti = 0;
+    }
+    let y = mt[this.mti++];
+    y = (y ^ (y >>> 11)) >>> 0;
+    y = (y ^ ((y << 7) & 0x9d2c5680)) >>> 0;
+    y = (y ^ ((y << 15) & 0xefc60000)) >>> 0;
+    y = (y ^ (y >>> 18)) >>> 0;
+    return y;
+  }
+  /** 同 random.random()：genrand_res53，53 位精度。 */
+  random(){
+    const a = this._genUint32() >>> 5;
+    const b = this._genUint32() >>> 6;
+    return (a * 67108864 + b) / 9007199254740992;
+  }
+  getrandbits(k){ return this._genUint32() >>> (32 - k); }   // 本项目只用到 k <= 32
+  _randbelow(n){
+    const k = jsBitLength(n);
+    let r = this.getrandbits(k);
+    while(r >= n) r = this.getrandbits(k);
+    return r;
+  }
+  randint(a, b){ return a + this._randbelow(b + 1 - a); }
+  choice(seq){ return seq[this._randbelow(seq.length)]; }
+  shuffle(arr){
+    for(let i = arr.length - 1; i >= 1; i--){
+      const j = this._randbelow(i + 1);
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+  }
+  /** 同 random.gauss（极坐标法，带 gauss_next 缓存）。 */
+  gauss(mu, sigma){
+    let z = this.gaussNext;
+    this.gaussNext = null;
+    if(z === null){
+      const x2pi = this.random() * 2 * Math.PI;
+      const g2rad = Math.sqrt(-2 * Math.log(1 - this.random()));
+      z = Math.cos(x2pi) * g2rad;
+      this.gaussNext = Math.sin(x2pi) * g2rad;
+    }
+    return mu + z * sigma;
+  }
+}
+
+// ---------- B. 基础版模型（对应 elevator_twin/model.py） ----------
+/**
+ * 与 CPython math.hypot 逐位一致的两点距离。
+ * 注意：V8 的 Math.hypot 并非"正确舍入"（部分整数对会差 1 ulp），
+ * 而格坐标差为整数时 dx*dx+dy*dy 精确可表示，Math.sqrt 又是 IEEE 正确舍入，
+ * 因此 Math.sqrt(dx*dx+dy*dy) 与 CPython math.hypot 完全一致（已用 0..40 全整数对校验）。
+ */
+function jsEuclid(a, b){
+  const dx = a[0] - b[0], dy = a[1] - b[1];
+  return Math.sqrt(dx * dx + dy * dy);
+}
+function jsClamp(v, lo, hi){ return v < lo ? lo : (v > hi ? hi : v); }
+function jsRound2(x){ return Math.round(x * 100) / 100; }
+function jsRound3(x){ return Math.round(x * 1000) / 1000; }
+function jsMean(arr){ let s = 0; for(const v of arr) s += v; return s / arr.length; }
+function jsPairKey(a, b){ return a < b ? a + '-' + b : b + '-' + a; }
+
+class JsPassenger {
+  constructor(uniqueId, model, comfortDistance, chatWillingness){
+    this.uniqueId = uniqueId;
+    this.model = model;
+    this.comfort_distance = comfortDistance;
+    this.chat_willingness = chatWillingness;
+    this.in_chat = false;
+    this.chat_partner = null;
+    this.pos = null;
+  }
+  step(){
+    // 1) 解除失效交流
+    if(this.in_chat && this.chat_partner !== null){
+      if(jsEuclid(this.pos, this.chat_partner.pos) > this.model.chat_range) this._endChat();
+    }
+    // 2) 尝试建立交流
+    if(!this.in_chat){
+      const partner = this._findChatPartner();
+      if(partner !== null) this._startChat(partner);
+    }
+    // 3) 移动决策
+    if(this.in_chat) this._moveTowardPartner();
+    else this._moveToMaximizeDistance();
+  }
+  _findChatPartner(){
+    let best = null, bestD = Infinity;
+    for(const other of this.model.agents){
+      if(other === this || other.in_chat || other.pos === null) continue;
+      const d = jsEuclid(this.pos, other.pos);
+      if(d < bestD){ best = other; bestD = d; }
+    }
+    if(best === null || bestD > this.model.chat_range) return null;
+    if(this.chat_willingness + best.chat_willingness >= this.model.chat_threshold) return best;
+    return null;
+  }
+  _startChat(other){
+    this.in_chat = true; this.chat_partner = other;
+    other.in_chat = true; other.chat_partner = this;
+  }
+  _endChat(){
+    const other = this.chat_partner;
+    if(other !== null){ other.in_chat = false; other.chat_partner = null; }
+    this.in_chat = false; this.chat_partner = null;
+  }
+  _moveTowardPartner(){
+    const partner = this.chat_partner;
+    if(partner === null) return;
+    if(jsEuclid(this.pos, partner.pos) <= 1.5) return;      // 已相邻（含对角），保持
+    const candidates = this.model.emptyCellsNear(partner.pos, 2);
+    if(!candidates.length) return;
+    let best = candidates[0];
+    for(const c of candidates){
+      if(jsEuclid(c, partner.pos) < jsEuclid(best, partner.pos)) best = c;
+    }
+    if(jsEuclid(best, partner.pos) < jsEuclid(this.pos, partner.pos)) this.model.move(this, best);
+  }
+  _moveToMaximizeDistance(){
+    const cells = this.model.emptyCells();
+    if(!cells.length) return;                               // 满载：保持原位
+    let best = null, bestScore = this._minDistanceAt(this.pos);
+    for(const cell of cells){
+      const s = this._minDistanceAt(cell);
+      if(s > bestScore){ best = cell; bestScore = s; }
+    }
+    if(best !== null) this.model.move(this, best);
+  }
+  _minDistanceAt(cell){
+    let d = Infinity;
+    for(const other of this.model.agents){
+      if(other === this || other.pos === null) continue;
+      d = Math.min(d, jsEuclid(cell, other.pos));
+    }
+    return d;
+  }
+}
+
+class JsElevatorModel {
+  constructor(p){
+    this.width = p.width;
+    this.height = p.height;
+    this.n_passengers = p.n_passengers;
+    this.comfort_distance = p.comfort_distance;
+    this.chat_range = p.chat_range;
+    this.chat_threshold = p.chat_threshold;
+
+    const capacity = p.width * p.height;
+    if(p.n_passengers < 0) throw new Error(`乘客数不能为负：${p.n_passengers}`);
+    if(p.n_passengers > capacity) throw new Error(`乘客数 ${p.n_passengers} 超过轿厢容量 ${capacity}`);
+
+    this.rng = new PyRandom(p.seed);
+    this.grid = Array.from({length: this.height}, () => new Array(this.width).fill(null));
+    this.agents = [];                       // 顺序即随机激活顺序（对应 mesa schedule._agents）
+    this.records = [];
+
+    for(let i = 0; i < p.n_passengers; i++){
+      const chat = jsClamp(this.rng.gauss(p.chat_willingness_mean, 0.2), 0.0, 1.0);
+      const agent = new JsPassenger(i, this, p.comfort_distance, chat);
+      this.agents.push(agent);
+      this._placeRandomly(agent);
+    }
+  }
+  _placeRandomly(agent){
+    const pos = this.rng.choice(this.emptyCells());
+    this.grid[pos[1]][pos[0]] = agent;
+    agent.pos = pos;
+  }
+  emptyCells(){
+    const out = [];
+    for(let x = 0; x < this.width; x++)
+      for(let y = 0; y < this.height; y++)
+        if(this.grid[y][x] === null) out.push([x, y]);
+    return out;
+  }
+  emptyCellsNear(pos, radius){
+    const out = [];
+    for(let x = 0; x < this.width; x++)
+      for(let y = 0; y < this.height; y++)
+        if(!(x === pos[0] && y === pos[1])
+           && jsEuclid([x, y], pos) <= radius
+           && this.grid[y][x] === null) out.push([x, y]);
+    return out;
+  }
+  move(agent, newPos){
+    this.grid[agent.pos[1]][agent.pos[0]] = null;
+    this.grid[newPos[1]][newPos[0]] = agent;
+    agent.pos = newPos;
+  }
+  nearestNeighborDistance(agent){
+    let d = Infinity;
+    for(const other of this.agents){
+      if(other === agent || other.pos === null) continue;
+      d = Math.min(d, jsEuclid(agent.pos, other.pos));
+    }
+    return d === Infinity ? null : d;
+  }
+  gridSnapshot(){
+    const rows = [];
+    for(let y = 0; y < this.height; y++){
+      let row = '';
+      for(let x = 0; x < this.width; x++){
+        const a = this.grid[y][x];
+        row += a === null ? '.' : (a.in_chat ? 'C' : 'P');
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+  /** 同 mesa DataCollector：每个 step 开始时采集一次（末行即「最后一步动作前」的状态）。 */
+  collect(){
+    this.records.push({
+      avg_nearest_distance: jsAvgNearestDistance(this),
+      min_nearest_distance: jsMinNearestDistance(this),
+      violation_rate: jsViolationRate(this),
+      chat_pairs: jsChatPairs(this),
+      chat_pair_distance: jsChatPairDistance(this),
+    });
+  }
+  step(){
+    this.collect();
+    this.rng.shuffle(this.agents);
+    for(const agent of this.agents) agent.step();
+  }
+  /** 同 webapp._grid_data：每格 {s: '.', 'P', 'C'; d: 最近邻距离 或 null}。 */
+  gridData(){
+    const cells = [];
+    for(let y = 0; y < this.height; y++){
+      const row = [];
+      for(let x = 0; x < this.width; x++) row.push({s: '.', d: null});
+      cells.push(row);
+    }
+    for(const a of this.agents){
+      if(a.pos === null) continue;
+      const d = this.nearestNeighborDistance(a);
+      cells[a.pos[1]][a.pos[0]] = {s: a.in_chat ? 'C' : 'P', d: d === null ? null : jsRound2(d)};
+    }
+    return cells;
+  }
+}
+
+function jsDistances(model){
+  const out = [];
+  for(const a of model.agents){
+    const d = model.nearestNeighborDistance(a);
+    if(d !== null) out.push(d);
+  }
+  return out;
+}
+function jsAvgNearestDistance(model){
+  const d = jsDistances(model);
+  return d.length ? jsMean(d) : 0.0;
+}
+function jsMinNearestDistance(model){
+  const d = jsDistances(model);
+  return d.length ? Math.min.apply(null, d) : 0.0;
+}
+function jsViolationRate(model){
+  const n = model.agents.length;
+  if(n === 0) return 0.0;
+  let v = 0;
+  for(const a of model.agents){
+    const d = model.nearestNeighborDistance(a);
+    if(d !== null && d < a.comfort_distance) v += 1;
+  }
+  return v / n;
+}
+function jsChatPairs(model){
+  const seen = new Set();
+  for(const a of model.agents){
+    if(a.in_chat && a.chat_partner !== null) seen.add(jsPairKey(a.uniqueId, a.chat_partner.uniqueId));
+  }
+  return seen.size;
+}
+function jsChatPairDistance(model){
+  const seen = new Set(); const ds = [];
+  for(const a of model.agents){
+    if(a.in_chat && a.chat_partner !== null){
+      const k = jsPairKey(a.uniqueId, a.chat_partner.uniqueId);
+      if(!seen.has(k)){ seen.add(k); ds.push(jsEuclid(a.pos, a.chat_partner.pos)); }
+    }
+  }
+  return ds.length ? jsMean(ds) : 0.0;
+}
+
+// ---------- C. 增强版模型（对应 elevator_twin/model_enhanced.py） ----------
+class JsEnhancedPassenger {
+  constructor(uniqueId, model, comfortDistanceM, chatWillingness, targetFloor){
+    this.uniqueId = uniqueId;
+    this.model = model;
+    this.comfort_distance = comfortDistanceM;   // 米
+    this.chat_willingness = chatWillingness;
+    this.target_floor = targetFloor;
+    this.in_chat = false;
+    this.chat_partner = null;
+    this.pos = null;
+  }
+  _dist(pos){ return jsEuclid(this.pos, pos) * this.model.cell_size; }
+  step(){
+    // 1) 解除失效交流
+    if(this.in_chat && this.chat_partner !== null){
+      if(this._dist(this.chat_partner.pos) > this.model.chat_range_m) this._endChat();
+    }
+    // 2) 建立交流
+    if(!this.in_chat){
+      const partner = this._findChatPartner();
+      if(partner !== null) this._startChat(partner);
+    }
+    // 3) 社会力移动
+    this._socialForceMove();
+  }
+  _findChatPartner(){
+    let best = null, bestD = Infinity;
+    for(const other of this.model.agents){
+      if(other === this || other.in_chat || other.pos === null) continue;
+      const d = jsEuclid(this.pos, other.pos) * this.model.cell_size;
+      if(d < bestD){ best = other; bestD = d; }
+    }
+    if(best === null || bestD > this.model.chat_range_m) return null;
+    if(this.chat_willingness + best.chat_willingness >= this.model.chat_threshold) return best;
+    return null;
+  }
+  _startChat(other){
+    this.in_chat = true; this.chat_partner = other;
+    other.in_chat = true; other.chat_partner = this;
+  }
+  _endChat(){
+    const other = this.chat_partner;
+    if(other !== null){ other.in_chat = false; other.chat_partner = null; }
+    this.in_chat = false; this.chat_partner = null;
+  }
+  _socialForceMove(){
+    const cells = this.model.emptyCells();
+    if(!cells.length) return;
+    let best = null, bestPotential = this._potential(this.pos);
+    for(const cell of cells){
+      const pot = this._potential(cell);
+      if(pot < bestPotential){ best = cell; bestPotential = pot; }   // 势能越低越优
+    }
+    if(best !== null) this.model.move(this, best);
+  }
+  _potential(cell){
+    let pot = 0.0;
+    const cs = this.model.cell_size;
+    for(const other of this.model.agents){
+      if(other === this || other.pos === null) continue;
+      const d = jsEuclid(cell, other.pos) * cs;
+      pot += this.model.repulsion_strength / Math.max(d, 0.1);       // 社交排斥势：越近越大
+    }
+    if(this.in_chat && this.chat_partner !== null){
+      const d = jsEuclid(cell, this.chat_partner.pos) * cs;
+      pot += this.model.attraction_strength * d;                     // 交流吸引势：越远越大
+    }
+    return pot;
+  }
+}
+
+class JsEnhancedElevatorModel {
+  constructor(p){
+    this.cell_size = p.cell_size;
+    this.width = Math.max(1, Math.trunc(p.width_m / p.cell_size));
+    this.height = Math.max(1, Math.trunc(p.depth_m / p.cell_size));
+    this.n_floors = p.n_floors;
+    this.board_interval = p.board_interval;
+    this.max_passengers = p.max_passengers;
+    this.comfort_distance = p.comfort_distance_m;
+    this.chat_range_m = p.chat_range_m;
+    this.chat_threshold = p.chat_threshold;
+    this.repulsion_strength = p.repulsion_strength;
+    this.attraction_strength = p.attraction_strength;
+    this.chat_willingness_mean = p.chat_willingness_mean;
+
+    this.current_floor = 1;
+    this.step_count = 0;
+    this._next_id = 0;
+
+    this.rng = new PyRandom(p.seed);
+    this.grid = Array.from({length: this.height}, () => new Array(this.width).fill(null));
+    this.agents = [];
+    this.records = [];
+
+    // 与 Python 版一致：乘客数超过轿厢格数时无法放置（Python 会抛 IndexError），
+    // 这里给出更友好的中文错误，避免弹出底层 undefined 报错。
+    const capacity = this.width * this.height;
+    if(this.max_passengers > capacity)
+      throw new Error(`乘客数 ${this.max_passengers} 超过轿厢容量 ${capacity}`);
+
+    for(let i = 0; i < this.max_passengers; i++) this._addPassenger();
+  }
+  _placeRandomly(agent){
+    const pos = this.rng.choice(this.emptyCells());
+    this.grid[pos[1]][pos[0]] = agent;
+    agent.pos = pos;
+  }
+  emptyCells(){
+    const out = [];
+    for(let x = 0; x < this.width; x++)
+      for(let y = 0; y < this.height; y++)
+        if(this.grid[y][x] === null) out.push([x, y]);
+    return out;
+  }
+  move(agent, newPos){
+    this.grid[agent.pos[1]][agent.pos[0]] = null;
+    this.grid[newPos[1]][newPos[0]] = agent;
+    agent.pos = newPos;
+  }
+  /** 增强版最近邻距离以「米」计（与 Python 版一致）。 */
+  nearestNeighborDistance(agent){
+    let d = Infinity;
+    for(const other of this.agents){
+      if(other === agent || other.pos === null) continue;
+      d = Math.min(d, jsEuclid(agent.pos, other.pos) * this.cell_size);
+    }
+    return d === Infinity ? null : d;
+  }
+  gridSnapshot(){
+    const rows = [];
+    for(let y = 0; y < this.height; y++){
+      let row = '';
+      for(let x = 0; x < this.width; x++){
+        const a = this.grid[y][x];
+        row += a === null ? '.' : (a.in_chat ? 'C' : 'P');
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+  _addPassenger(){
+    const id = this._next_id++;
+    const chat = jsClamp(this.rng.gauss(this.chat_willingness_mean, 0.2), 0.0, 1.0);
+    const target = this.rng.randint(2, this.n_floors + 1);   // 目标楼层（至少上一层）
+    const agent = new JsEnhancedPassenger(id, this, this.comfort_distance, chat, target);
+    this.agents.push(agent);
+    this._placeRandomly(agent);
+  }
+  _boardAlight(){
+    // 下客：目标楼层 == 当前楼层的乘客离开
+    const alighting = this.agents.filter(a => a.target_floor === this.current_floor);
+    for(const a of alighting){
+      if(a.in_chat && a.chat_partner !== null) a._endChat();
+      this.grid[a.pos[1]][a.pos[0]] = null;
+      a.pos = null;
+      const idx = this.agents.indexOf(a);
+      if(idx >= 0) this.agents.splice(idx, 1);
+    }
+    // 上客：随机数量（不超过额定人数与剩余容量）
+    const room = Math.min(this.max_passengers - this.agents.length, this.emptyCells().length);
+    if(room > 0){
+      const k = this.rng.randint(0, room);
+      for(let i = 0; i < k; i++) this._addPassenger();
+    }
+    // 楼层循环
+    this.current_floor = this.current_floor % this.n_floors + 1;
+  }
+  collect(){
+    this.records.push({
+      avg_nearest_distance_m: jsAvgNearestDistanceM(this),
+      min_nearest_distance_m: jsMinNearestDistanceM(this),
+      violation_rate: jsViolationRate(this),
+      chat_pairs: jsChatPairs(this),
+      current_passengers: this.agents.length,
+      current_floor: this.current_floor,
+    });
+  }
+  step(){
+    this.collect();
+    if(this.step_count > 0 && this.step_count % this.board_interval === 0) this._boardAlight();
+    this.rng.shuffle(this.agents);
+    for(const agent of this.agents) agent.step();
+    this.step_count += 1;
+  }
+  gridData(){
+    const cells = [];
+    for(let y = 0; y < this.height; y++){
+      const row = [];
+      for(let x = 0; x < this.width; x++) row.push({s: '.', d: null});
+      cells.push(row);
+    }
+    for(const a of this.agents){
+      if(a.pos === null) continue;
+      const d = this.nearestNeighborDistance(a);
+      cells[a.pos[1]][a.pos[0]] = {s: a.in_chat ? 'C' : 'P', d: d === null ? null : jsRound2(d)};
+    }
+    return cells;
+  }
+}
+
+function jsAvgNearestDistanceM(model){
+  const d = jsDistances(model);
+  return d.length ? jsMean(d) : 0.0;
+}
+function jsMinNearestDistanceM(model){
+  const d = jsDistances(model);
+  return d.length ? Math.min.apply(null, d) : 0.0;
+}
+
+// ---------- D. 轻量绘图（canvas，替代 matplotlib 出图，纯离线可用） ----------
+const JS_PALETTE = ['#3b6ff0', '#f0641f', '#2fbf7b', '#a259ff', '#0aa2c0'];
+const JS_CHART_FONT = '"Segoe UI", "Microsoft YaHei", sans-serif';
+function jsFmtTick(v){
+  const a = Math.abs(v);
+  if(a >= 100) return v.toFixed(0);
+  if(a >= 10) return v.toFixed(1);
+  return v.toFixed(2);
+}
+function jsDrawPanel(ctx, x0, y0, w, h, panel){
+  const padL = 54, padR = 14, padT = 28, padB = 34;
+  const px = x0 + padL, py = y0 + padT;
+  const pw = Math.max(12, w - padL - padR), ph = Math.max(12, h - padT - padB);
+  const series = panel.series || [];
+  const xs = panel.x || (series[0] ? series[0].values.map((_, i) => i) : []);
+  const vals = [];
+  for(const s of series) for(const v of s.values) if(typeof v === 'number' && isFinite(v)) vals.push(v);
+  let yMin = vals.length ? Math.min.apply(null, vals) : 0;
+  let yMax = vals.length ? Math.max.apply(null, vals) : 1;
+  if(yMin === yMax){ yMin -= 0.5; yMax += 0.5; }
+  const yPad = (yMax - yMin) * 0.08;                 // 与 matplotlib 的默认留白接近
+  yMin -= yPad; yMax += yPad;
+  let xMin = xs.length ? Math.min.apply(null, xs) : 0;
+  let xMax = xs.length ? Math.max.apply(null, xs) : 1;
+  if(xMin === xMax){ xMin -= 0.5; xMax += 0.5; }
+  const sx = v => px + (v - xMin) / (xMax - xMin) * pw;
+  const sy = v => py + ph - (v - yMin) / (yMax - yMin) * ph;
+
+  ctx.save();
+  ctx.lineWidth = 1;
+  for(let i = 0; i <= 4; i++){
+    const v = yMin + (yMax - yMin) * i / 4, y = sy(v);
+    ctx.strokeStyle = '#e6ebf4';
+    ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke();
+    ctx.fillStyle = '#5b667a'; ctx.font = '11px ' + JS_CHART_FONT;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(jsFmtTick(v), px - 6, y);
+  }
+  for(let i = 0; i <= 4; i++){
+    const v = xMin + (xMax - xMin) * i / 4;
+    ctx.fillStyle = '#5b667a'; ctx.font = '11px ' + JS_CHART_FONT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(jsFmtTick(v), sx(v), py + ph + 7);
+  }
+  series.forEach((s, si) => {
+    const color = JS_PALETTE[si % JS_PALETTE.length];
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    let started = false;
+    s.values.forEach((v, i) => {
+      if(typeof v !== 'number' || !isFinite(v)){ started = false; return; }
+      const x = sx(xs[i]), y = sy(v);
+      if(started) ctx.lineTo(x, y); else { ctx.moveTo(x, y); started = true; }
+    });
+    ctx.stroke();
+    s.values.forEach((v, i) => {
+      if(typeof v !== 'number' || !isFinite(v)) return;
+      ctx.beginPath(); ctx.arc(sx(xs[i]), sy(v), 2.4, 0, Math.PI * 2); ctx.fill();
+    });
+  });
+  if(panel.labels && panel.labels.length){
+    ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.font = '11px ' + JS_CHART_FONT;
+    panel.labels.forEach((lb, i) => {
+      ctx.fillStyle = JS_PALETTE[i % JS_PALETTE.length];
+      ctx.fillText(lb, px + pw - 4, py + 6 + i * 15);
+    });
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillStyle = '#1a2332'; ctx.font = '600 13px ' + JS_CHART_FONT;
+  ctx.fillText(panel.title || '', x0 + w / 2, y0 + 5);
+  ctx.fillStyle = '#5b667a'; ctx.font = '11px ' + JS_CHART_FONT;
+  ctx.fillText(panel.xlabel || '', px + pw / 2, py + ph + 23);
+  ctx.restore();
+}
+function jsFigureDataUrl(panels, suptitle){
+  const scale = 2;                                    // 2 倍像素，页面上放大也不糊
+  const pw = 400, ph = 240, gap = 22, top = suptitle ? 36 : 12;
+  const canvas = document.createElement('canvas');
+  canvas.width = (panels.length * pw + Math.max(0, panels.length - 1) * gap) * scale;
+  canvas.height = (top + ph) * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if(suptitle){
+    ctx.fillStyle = '#1a2332'; ctx.font = '600 15px ' + JS_CHART_FONT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(suptitle, canvas.width / scale / 2, 12);
+  }
+  panels.forEach((p, i) => jsDrawPanel(ctx, i * (pw + gap), top, pw, ph, p));
+  return canvas.toDataURL('image/png');
+}
+function jsCurveBasic(records){
+  return jsFigureDataUrl([
+    {title: '平均最近邻距离', series: [{values: records.map(r => r.avg_nearest_distance)}]},
+    {title: '社交距离违规率', series: [{values: records.map(r => r.violation_rate)}]},
+    {title: '交流对数', series: [{values: records.map(r => r.chat_pairs)}]},
+  ], '指标随仿真步变化');
+}
+function jsCurveEnhanced(records){
+  return jsFigureDataUrl([
+    {title: '平均最近邻距离(米)', series: [{values: records.map(r => r.avg_nearest_distance_m)}]},
+    {title: '社交距离违规率', series: [{values: records.map(r => r.violation_rate)}]},
+    {title: '交流对数', series: [{values: records.map(r => r.chat_pairs)}]},
+    {title: '当前乘客数', series: [{values: records.map(r => r.current_passengers)}]},
+  ], '增强版：真实尺寸 + 上下客 + 社会力（指标随仿真步变化）');
+}
+function jsSweepPlot(rows){
+  const ns = [4, 6, 8, 10, 12], ws = [0.2, 0.5, 0.8];
+  const panel = key => ({
+    title: key, xlabel: '乘客数', x: ns,
+    labels: ws.map(w => '交流意愿=' + w),
+    series: ws.map(w => ({values: ns.map(n => {
+      const hit = rows.filter(r => r['乘客数'] === n && r['交流意愿'] === w)[0];
+      return hit ? hit[key] : null;
+    })}))
+  });
+  return jsFigureDataUrl([panel('平均最近邻距离'), panel('社交距离违规率'), panel('交流对数')],
+    '交流意愿 × 乘客数 对比实验');
+}
+
+// ---------- E. 内置引擎接口（参数裁剪口径同 webapp._parse_params） ----------
+function jsToNumber(x){
+  if(typeof x === 'number') return x;
+  const n = parseFloat(String(x).trim());
+  if(!isFinite(n)) throw new Error('不是合法数字');
+  return n;
+}
+const jsToInt = x => Math.trunc(jsToNumber(x));      // Python int(x)：向零截断
+const jsToFloat = x => jsToNumber(x);
+function jsClampGet(raw, key, def, cast, lo, hi){
+  let v;
+  try{
+    const src = (raw[key] === undefined || raw[key] === null || raw[key] === '') ? def : raw[key];
+    v = cast(src);
+  }catch(e){
+    v = cast(def);
+  }
+  if(typeof v !== 'number' || !isFinite(v)) v = cast(def);
+  return Math.max(lo, Math.min(hi, v));
+}
+function jsBasicParams(raw){
+  const P = (k, d, c, lo, hi) => jsClampGet(raw, k, d, c, lo, hi);
+  return {
+    width: P('width', 4, jsToInt, 2, 12),
+    height: P('height', 4, jsToInt, 2, 12),
+    n_passengers: P('n_passengers', 8, jsToInt, 1, 144),
+    chat_willingness_mean: P('chat_willingness_mean', 0.5, jsToFloat, 0.0, 1.0),
+    comfort_distance: P('comfort_distance', 1.5, jsToFloat, 0.5, 5.0),
+    chat_range: P('chat_range', 1.5, jsToFloat, 0.5, 6.0),
+    chat_threshold: P('chat_threshold', 1.0, jsToFloat, 0.0, 2.0),
+    steps: P('steps', 30, jsToInt, 1, 200),
+    seed: P('seed', 42, jsToInt, 0, 1e9),
+  };
+}
+function jsEnhancedParams(raw){
+  const P = (k, d, c, lo, hi) => jsClampGet(raw, k, d, c, lo, hi);
+  return {
+    width_m: P('width_m', 1.6, jsToFloat, 0.8, 5.0),
+    depth_m: P('depth_m', 1.4, jsToFloat, 0.8, 5.0),
+    cell_size: P('cell_size', 0.4, jsToFloat, 0.1, 1.0),
+    n_floors: P('n_floors', 6, jsToInt, 2, 40),
+    board_interval: P('board_interval', 5, jsToInt, 1, 50),
+    max_passengers: P('max_passengers', 6, jsToInt, 1, 40),
+    comfort_distance_m: P('comfort_distance_m', 1.0, jsToFloat, 0.3, 2.0),
+    chat_willingness_mean: P('chat_willingness_mean', 0.5, jsToFloat, 0.0, 1.0),
+    chat_range_m: P('chat_range_m', 0.8, jsToFloat, 0.3, 2.0),
+    chat_threshold: P('chat_threshold', 1.0, jsToFloat, 0.0, 2.0),
+    repulsion_strength: P('repulsion_strength', 1.0, jsToFloat, 0.0, 5.0),
+    attraction_strength: P('attraction_strength', 0.5, jsToFloat, 0.0, 5.0),
+    steps: P('steps', 30, jsToInt, 1, 200),
+    seed: P('seed', 42, jsToInt, 0, 1e9),
+  };
+}
+
+function jsLocalSimulate(raw){
+  const p = jsBasicParams(raw);
+  const model = new JsElevatorModel(p);
+  const frames = [model.gridSnapshot()];
+  for(let i = 0; i < p.steps; i++){ model.step(); frames.push(model.gridSnapshot()); }
+  const last = model.records[model.records.length - 1];
+  return {
+    metrics: {
+      avg_nearest_distance: jsRound3(last.avg_nearest_distance),
+      min_nearest_distance: jsRound3(last.min_nearest_distance),
+      violation_rate: jsRound3(last.violation_rate),
+      chat_pairs: Math.trunc(last.chat_pairs),
+      chat_pair_distance: jsRound3(last.chat_pair_distance),
+    },
+    grid: model.gridData(),
+    frames: frames,
+    curve: jsCurveBasic(model.records),
+    builtin: true,
+  };
+}
+
+function jsLocalSimulateEnhanced(raw){
+  const p = jsEnhancedParams(raw);
+  const model = new JsEnhancedElevatorModel(p);
+  const frames = [model.gridSnapshot()];
+  const floors = [model.current_floor];
+  const passengers = [model.agents.length];
+  for(let i = 0; i < p.steps; i++){
+    model.step();
+    frames.push(model.gridSnapshot());
+    floors.push(model.current_floor);
+    passengers.push(model.agents.length);
+  }
+  const last = model.records[model.records.length - 1];
+  return {
+    metrics: {
+      avg_nearest_distance_m: jsRound3(last.avg_nearest_distance_m),
+      min_nearest_distance_m: jsRound3(last.min_nearest_distance_m),
+      violation_rate: jsRound3(last.violation_rate),
+      chat_pairs: Math.trunc(last.chat_pairs),
+      current_passengers: Math.trunc(last.current_passengers),
+      current_floor: Math.trunc(last.current_floor),
+      width: model.width,
+      height: model.height,
+      cell_size: model.cell_size,
+    },
+    grid: model.gridData(),
+    frames: frames,
+    floors: floors,
+    passengers: passengers,
+    curve: jsCurveEnhanced(model.records),
+    unit: 'm',
+    builtin: true,
+  };
+}
+
+function jsLocalSweep(raw){
+  let steps = Number(raw && raw.steps);
+  let seed = Number(raw && raw.seed);
+  if(!isFinite(steps) || steps < 1) steps = 30;
+  if(!isFinite(seed)) seed = 42;
+  steps = Math.max(1, Math.min(200, Math.trunc(steps)));
+  const rows = [];
+  for(const n of [4, 6, 8, 10, 12]){                 // 同 run.sweep：n 外层、w 内层
+    for(const w of [0.2, 0.5, 0.8]){
+      const model = new JsElevatorModel({
+        width: 4, height: 4, n_passengers: n, comfort_distance: 1.5,
+        chat_willingness_mean: w, chat_range: 1.5, chat_threshold: 1.0, seed: seed,
+      });
+      for(let i = 0; i < steps; i++) model.step();
+      const r = model.records[model.records.length - 1];
+      rows.push({
+        '乘客数': n,
+        '交流意愿': w,
+        '平均最近邻距离': jsRound3(r.avg_nearest_distance),
+        '社交距离违规率': jsRound3(r.violation_rate),
+        '交流对数': Math.trunc(r.chat_pairs),
+      });
+    }
+  }
+  return {table: rows, plot: jsSweepPlot(rows), builtin: true};
+}
+
+// ---------- F. 后端探测与自动降级 ----------
+class BackendUnavailable extends Error {}   // 只有「后端不存在 / 不可达」才降级，业务错误照常提示
+
+let apiReady = null;                        // null=未知 true=可用 false=不可用
+let engineMode = 'builtin';
+
+function jsFetchWithTimeout(url, opts, ms){
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const timer = setTimeout(() => {
+      if(done) return;
+      done = true;
+      if(ctl) ctl.abort();
+      reject(new Error('请求超时'));
+    }, ms);
+    const options = Object.assign({}, opts);
+    if(ctl) options.signal = ctl.signal;
+    fetch(url, options).then(r => {
+      if(done) return;
+      done = true; clearTimeout(timer); resolve(r);
+    }).catch(e => {
+      if(done) return;
+      done = true; clearTimeout(timer); reject(e);
+    });
+  });
+}
+
+function setEngine(mode, note, warn){
+  engineMode = mode;
+  const badge = $('engine-badge');
+  if(badge){
+    badge.textContent = mode === 'python' ? 'Python 后端引擎' : '浏览器内置引擎（离线）';
+    badge.className = 'engine-badge ' + (mode === 'python' ? 'ok' : 'alt');
+  }
+  const el = $('engine-note');
+  if(el){
+    el.textContent = note || (mode === 'python'
+      ? '已连接 Python 后端（Flask + mesa + matplotlib）。'
+      : '检测不到 Python 后端，已启用浏览器内置引擎（离线模式）：模型规则、指标口径与 Python 版一致。');
+    el.classList.toggle('warn', !!warn);
+  }
+}
+
+async function detectBackend(){
+  try{
+    const r = await jsFetchWithTimeout(API_BASE + '/api/health', {method: 'GET'}, 5000);
+    if(!r.ok) return false;
+    const ct = (r.headers.get('content-type') || '').toLowerCase();
+    if(!ct.includes('json')) return false;      // 纯静态托管只会返回 404 的 HTML 页面
+    const d = await r.json();
+    return !!d && d.status === 'ok';
+  }catch(e){ return false; }
+}
+
+/** 优先走后端；只有「后端不可达」才回退到内置引擎（业务参数错误仍原样抛出）。 */
+async function callEngine(url, params, localFn){
+  if(apiReady === false) return localFn(params);
+  try{
+    const d = await post(url, params);
+    apiReady = true;
+    setEngine('python');
+    return d;
+  }catch(e){
+    if(!(e instanceof BackendUnavailable)) throw e;
+    apiReady = false;
+    const d = localFn(params);
+    d._degraded = e.message;
+    setEngine('builtin', '后端不可用（' + e.message + '），已改用浏览器内置引擎完成本次仿真，数值口径与 Python 版一致。', true);
+    return d;
+  }
+}
+
 // ===== 后端地址（API Base）=====
 // 同域部署（本地 python webapp.py、或整体部署在 Render）时留空即可；
 // 「Netlify 静态前端 + Render 后端」这种跨域部署时，三种方式任选：
@@ -396,21 +1316,28 @@ const API_BASE = (
 async function post(url, body){
   let r;
   try{
-    r = await fetch(API_BASE + url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    r = await jsFetchWithTimeout(API_BASE + url, {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
+    }, 25000);
   }catch(e){
-    throw new Error('连不上后端 ' + (API_BASE || '(当前域名)') +
-      '：请确认 Flask 后端已启动或已在 Render 部署成功；' +
-      '若前端与后端不同域，用 ?api=https://<后端域名> 指定后端地址。');
+    throw new BackendUnavailable((API_BASE || '当前域名') + ' 上没有可用的 Python 后端（' + (e && e.message ? e.message : e) + '）');
+  }
+  const ct = (r.headers.get('content-type') || '').toLowerCase();
+  if(!ct.includes('json')){
+    // 静态托管（Netlify 等）对 /api/* 只会返回 404 的 HTML 页面
+    throw new BackendUnavailable('地址 ' + (API_BASE || '当前域名') + url + ' 返回的是 HTML 而不是 JSON（HTTP ' + r.status + '）');
   }
   const d = await r.json();
-  if(!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+  if(!r.ok) throw new Error(d.error || ('HTTP ' + r.status));   // 后端明确的业务错误照常抛出
   return d;
 }
 async function runSimulate(){
   const btn = $('btn-run'); btn.disabled = true; btn.textContent = '运行中…';
   try{
+    const params = readParams();
     const url = currentModel === 'enhanced' ? '/api/simulate_enhanced' : '/api/simulate';
-    const d = await post(url, readParams());
+    const localFn = currentModel === 'enhanced' ? jsLocalSimulateEnhanced : jsLocalSimulate;
+    const d = await callEngine(url, params, localFn);
     lastMetrics = d.metrics; lastFrames = d.frames;
     lastFloors = d.floors || null; lastPassengers = d.passengers || null;
     lastUnit = d.unit || 'grid';
@@ -441,7 +1368,7 @@ function updateFloorInfo(i){
 async function runSweep(){
   const btn = $('btn-sweep'); btn.disabled = true; btn.textContent = '运行中…';
   try{
-    const d = await post('/api/sweep', {steps: +$('steps').value, seed: +$('seed').value});
+    const d = await callEngine('/api/sweep', {steps: +$('steps').value, seed: +$('seed').value}, jsLocalSweep);
     $('sweep-plot').src = d.plot; $('sweep-plot').classList.remove('hidden');
     const cols = ['乘客数','交流意愿','平均最近邻距离','社交距离违规率','交流对数'];
     let html = '<table><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
@@ -467,7 +1394,11 @@ async function runAgnes(){
   }catch(e){
     el.classList.remove('loading', 'md');
     el.classList.add('error');
-    el.textContent = e.message;
+    el.textContent = (e instanceof BackendUnavailable)
+      ? 'Agnes 智能分析需要 Python 后端（本地 python webapp.py 或 Render 部署）并提供 AGNES_API_KEY；'
+        + '当前页面处于纯静态离线模式，只能用浏览器内置引擎跑仿真。'
+        + '可在左侧「引擎状态」里填入后端地址后重试。'
+      : e.message;
   }
   finally{ btn.disabled = false; btn.textContent = 'Agnes 智能分析'; }
 }
@@ -535,6 +1466,28 @@ Object.entries(labelMap).forEach(([id, lid]) => {
 });
 $('willingness').addEventListener('input', function(){ $('v-w').textContent = (+this.value).toFixed(2); });
 $('willingness2').addEventListener('input', function(){ $('v-w2').textContent = (+this.value).toFixed(2); });
+
+// ===== 引擎状态：优先用 Python 后端，探测不到就用浏览器内置引擎 =====
+$('api-input').value = API_BASE || '';
+$('btn-api-save').onclick = () => {
+  const v = ($('api-input').value || '').trim().replace(/\/+$/, '');
+  if(v) localStorage.setItem('apiBase', v); else localStorage.removeItem('apiBase');
+  location.reload();
+};
+$('btn-api-check').onclick = async () => {
+  const badge = $('engine-badge');
+  badge.textContent = '检测中…'; badge.className = 'engine-badge';
+  apiReady = null;
+  const ok = await detectBackend();
+  apiReady = ok;
+  setEngine(ok ? 'python' : 'builtin');
+};
+(async function initEngine(){
+  apiReady = null;
+  const ok = await detectBackend();
+  apiReady = ok;
+  setEngine(ok ? 'python' : 'builtin');
+})();
 </script>
 </body>
 </html>

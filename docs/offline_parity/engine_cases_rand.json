@@ -1,0 +1,994 @@
+{
+ "cases": [
+  {
+   "kind": "basic",
+   "params": {
+    "width": 3,
+    "height": 2,
+    "n_passengers": 6,
+    "steps": 400,
+    "seed": 1000000000,
+    "chat_willingness_mean": -0.4,
+    "comfort_distance": 1.5,
+    "chat_range": 0.9,
+    "chat_threshold": 1.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 12,
+    "height": 3,
+    "n_passengers": 15,
+    "steps": 30,
+    "seed": 1000000000,
+    "chat_willingness_mean": 1.0,
+    "comfort_distance": 5.0,
+    "chat_range": 0.5,
+    "chat_threshold": 1.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 3,
+    "height": 12,
+    "n_passengers": 8,
+    "steps": 12,
+    "seed": 1000000000,
+    "chat_willingness_mean": 0.15,
+    "comfort_distance": 5.0,
+    "chat_range": 0.5,
+    "chat_threshold": 4.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 20,
+    "height": 6,
+    "n_passengers": 72,
+    "steps": 60,
+    "seed": 0,
+    "chat_willingness_mean": -0.4,
+    "comfort_distance": 9.0,
+    "chat_range": 0.5,
+    "chat_threshold": 1.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 20,
+    "height": 3,
+    "n_passengers": 1,
+    "steps": 5,
+    "seed": 0,
+    "chat_willingness_mean": -0.4,
+    "comfort_distance": 9.0,
+    "chat_range": 3.3,
+    "chat_threshold": 4.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 3,
+    "height": 6,
+    "n_passengers": 18,
+    "steps": 5,
+    "seed": 999,
+    "chat_willingness_mean": 0.0,
+    "comfort_distance": 5.0,
+    "chat_range": 3.3,
+    "chat_threshold": 0.4
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 2,
+    "height": 12,
+    "n_passengers": 8,
+    "steps": 12,
+    "seed": 1000000000,
+    "chat_willingness_mean": 0.83,
+    "comfort_distance": 9.0,
+    "chat_range": 6.0,
+    "chat_threshold": 0.4
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 8,
+    "height": 3,
+    "n_passengers": 24,
+    "steps": 60,
+    "seed": 7,
+    "chat_willingness_mean": -0.4,
+    "comfort_distance": 5.0,
+    "chat_range": 12.0,
+    "chat_threshold": 4.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 3,
+    "height": 2,
+    "n_passengers": 1,
+    "steps": 150,
+    "seed": 1000000000,
+    "chat_willingness_mean": 0.0,
+    "comfort_distance": 1.5,
+    "chat_range": 0.5,
+    "chat_threshold": 1.7
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 3,
+    "height": 3,
+    "n_passengers": 1,
+    "steps": 12,
+    "seed": 0,
+    "chat_willingness_mean": 0.0,
+    "comfort_distance": 0.2,
+    "chat_range": 0.9,
+    "chat_threshold": 0.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 3,
+    "height": 3,
+    "n_passengers": 3,
+    "steps": 30,
+    "seed": 0,
+    "chat_willingness_mean": 0.83,
+    "comfort_distance": 0.5,
+    "chat_range": 0.5,
+    "chat_threshold": 1.7
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 12,
+    "height": 12,
+    "n_passengers": 144,
+    "steps": 60,
+    "seed": 1,
+    "chat_willingness_mean": 1.5,
+    "comfort_distance": 1.5,
+    "chat_range": 6.0,
+    "chat_threshold": 1.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 4,
+    "height": 2,
+    "n_passengers": 8,
+    "steps": 150,
+    "seed": 123456,
+    "chat_willingness_mean": 0.83,
+    "comfort_distance": 5.0,
+    "chat_range": 3.3,
+    "chat_threshold": 4.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 2,
+    "height": 12,
+    "n_passengers": 3,
+    "steps": 1,
+    "seed": 0,
+    "chat_willingness_mean": 0.15,
+    "comfort_distance": 0.2,
+    "chat_range": 12.0,
+    "chat_threshold": 4.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 20,
+    "height": 4,
+    "n_passengers": 3,
+    "steps": 60,
+    "seed": 123456,
+    "chat_willingness_mean": 1.0,
+    "comfort_distance": 0.2,
+    "chat_range": 0.9,
+    "chat_threshold": 4.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 2,
+    "height": 6,
+    "n_passengers": 12,
+    "steps": 1,
+    "seed": 1000000000,
+    "chat_willingness_mean": 1.5,
+    "comfort_distance": 0.5,
+    "chat_range": 6.0,
+    "chat_threshold": 1.7
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 20,
+    "height": 12,
+    "n_passengers": 144,
+    "steps": 12,
+    "seed": 999,
+    "chat_willingness_mean": 1.5,
+    "comfort_distance": 1.5,
+    "chat_range": 12.0,
+    "chat_threshold": 0.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 5,
+    "height": 6,
+    "n_passengers": 3,
+    "steps": 1,
+    "seed": 999,
+    "chat_willingness_mean": 1.0,
+    "comfort_distance": 0.5,
+    "chat_range": 0.9,
+    "chat_threshold": 0.4
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 8,
+    "height": 2,
+    "n_passengers": 16,
+    "steps": 5,
+    "seed": 7,
+    "chat_willingness_mean": 0.5,
+    "comfort_distance": 0.5,
+    "chat_range": 1.5,
+    "chat_threshold": 1.7
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 2,
+    "height": 4,
+    "n_passengers": 8,
+    "steps": 150,
+    "seed": 42,
+    "chat_willingness_mean": 0.0,
+    "comfort_distance": 0.5,
+    "chat_range": 12.0,
+    "chat_threshold": 1.7
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 20,
+    "height": 12,
+    "n_passengers": 8,
+    "steps": 5,
+    "seed": 123456,
+    "chat_willingness_mean": 0.83,
+    "comfort_distance": 0.5,
+    "chat_range": 6.0,
+    "chat_threshold": 0.4
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 2,
+    "height": 4,
+    "n_passengers": 8,
+    "steps": 5,
+    "seed": 1,
+    "chat_willingness_mean": -0.4,
+    "comfort_distance": 5.0,
+    "chat_range": 3.3,
+    "chat_threshold": 1.7
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 8,
+    "height": 12,
+    "n_passengers": 8,
+    "steps": 12,
+    "seed": 0,
+    "chat_willingness_mean": 0.0,
+    "comfort_distance": 5.0,
+    "chat_range": 6.0,
+    "chat_threshold": 1.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 2,
+    "height": 3,
+    "n_passengers": 3,
+    "steps": 12,
+    "seed": 999,
+    "chat_willingness_mean": 0.5,
+    "comfort_distance": 0.2,
+    "chat_range": 1.5,
+    "chat_threshold": 0.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 3,
+    "height": 2,
+    "n_passengers": 1,
+    "steps": 150,
+    "seed": 7,
+    "chat_willingness_mean": 1.5,
+    "comfort_distance": 9.0,
+    "chat_range": 1.5,
+    "chat_threshold": 2.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 12,
+    "height": 2,
+    "n_passengers": 24,
+    "steps": 12,
+    "seed": 7,
+    "chat_willingness_mean": -0.4,
+    "comfort_distance": 1.5,
+    "chat_range": 0.9,
+    "chat_threshold": 0.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 4,
+    "height": 6,
+    "n_passengers": 8,
+    "steps": 1,
+    "seed": 7,
+    "chat_willingness_mean": 0.5,
+    "comfort_distance": 0.5,
+    "chat_range": 0.5,
+    "chat_threshold": 0.4
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 5,
+    "height": 12,
+    "n_passengers": 8,
+    "steps": 400,
+    "seed": 1,
+    "chat_willingness_mean": 0.83,
+    "comfort_distance": 2.75,
+    "chat_range": 0.9,
+    "chat_threshold": 1.0
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 3,
+    "height": 6,
+    "n_passengers": 18,
+    "steps": 12,
+    "seed": 7,
+    "chat_willingness_mean": 0.0,
+    "comfort_distance": 9.0,
+    "chat_range": 1.5,
+    "chat_threshold": 1.7
+   }
+  },
+  {
+   "kind": "basic",
+   "params": {
+    "width": 12,
+    "height": 12,
+    "n_passengers": 3,
+    "steps": 12,
+    "seed": 1,
+    "chat_willingness_mean": 1.5,
+    "comfort_distance": 2.75,
+    "chat_range": 6.0,
+    "chat_threshold": 0.0
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 3.4,
+    "depth_m": 5.0,
+    "cell_size": 2.0,
+    "n_floors": 6,
+    "board_interval": 5,
+    "max_passengers": 6,
+    "comfort_distance_m": 1.0,
+    "chat_willingness_mean": 0.5,
+    "chat_range_m": 5.0,
+    "chat_threshold": 2.0,
+    "repulsion_strength": 1.0,
+    "attraction_strength": 3.0,
+    "steps": 45,
+    "seed": 1000000000
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 5.0,
+    "depth_m": 0.8,
+    "cell_size": 1.0,
+    "n_floors": 4,
+    "board_interval": 5,
+    "max_passengers": 5,
+    "comfort_distance_m": 4.0,
+    "chat_willingness_mean": 0.3,
+    "chat_range_m": 5.0,
+    "chat_threshold": 0.0,
+    "repulsion_strength": 0.3,
+    "attraction_strength": 5.0,
+    "steps": 45,
+    "seed": 3
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 0.5,
+    "depth_m": 1.4,
+    "cell_size": 1.0,
+    "n_floors": 4,
+    "board_interval": 90,
+    "max_passengers": 1,
+    "comfort_distance_m": 1.0,
+    "chat_willingness_mean": 0.0,
+    "chat_range_m": 5.0,
+    "chat_threshold": 0.0,
+    "repulsion_strength": 2.5,
+    "attraction_strength": 0.0,
+    "steps": 400,
+    "seed": 1000000000
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 0.8,
+    "depth_m": 5.0,
+    "cell_size": 1.0,
+    "n_floors": 10,
+    "board_interval": 3,
+    "max_passengers": 2,
+    "comfort_distance_m": 0.3,
+    "chat_willingness_mean": 0.5,
+    "chat_range_m": 2.0,
+    "chat_threshold": 1.0,
+    "repulsion_strength": 1.0,
+    "attraction_strength": 0.0,
+    "steps": 1,
+    "seed": 42
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 9.0,
+    "depth_m": 0.8,
+    "cell_size": 2.0,
+    "n_floors": 2,
+    "board_interval": 50,
+    "max_passengers": 1,
+    "comfort_distance_m": 0.2,
+    "chat_willingness_mean": 1.0,
+    "chat_range_m": 0.3,
+    "chat_threshold": 1.0,
+    "repulsion_strength": 0.0,
+    "attraction_strength": 3.0,
+    "steps": 80,
+    "seed": 0
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 0.8,
+    "depth_m": 5.0,
+    "cell_size": 0.1,
+    "n_floors": 2,
+    "board_interval": 3,
+    "max_passengers": 25,
+    "comfort_distance_m": 1.0,
+    "chat_willingness_mean": 0.0,
+    "chat_range_m": 2.0,
+    "chat_threshold": 0.5,
+    "repulsion_strength": 0.0,
+    "attraction_strength": 1.0,
+    "steps": 1,
+    "seed": 2024
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 5.0,
+    "depth_m": 2.0,
+    "cell_size": 0.25,
+    "n_floors": 10,
+    "board_interval": 90,
+    "max_passengers": 12,
+    "comfort_distance_m": 2.0,
+    "chat_willingness_mean": 0.3,
+    "chat_range_m": 1.5,
+    "chat_threshold": 1.0,
+    "repulsion_strength": 2.5,
+    "attraction_strength": 3.0,
+    "steps": 400,
+    "seed": 3
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 9.0,
+    "depth_m": 5.0,
+    "cell_size": 0.5,
+    "n_floors": 25,
+    "board_interval": 90,
+    "max_passengers": 6,
+    "comfort_distance_m": 1.6,
+    "chat_willingness_mean": 1.0,
+    "chat_range_m": 1.5,
+    "chat_threshold": 0.0,
+    "repulsion_strength": 0.3,
+    "attraction_strength": 0.0,
+    "steps": 1,
+    "seed": 1000000000
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 0.8,
+    "depth_m": 1.4,
+    "cell_size": 0.1,
+    "n_floors": 6,
+    "board_interval": 2,
+    "max_passengers": 4,
+    "comfort_distance_m": 0.2,
+    "chat_willingness_mean": 0.5,
+    "chat_range_m": 0.3,
+    "chat_threshold": 1.8,
+    "repulsion_strength": 0.3,
+    "attraction_strength": 5.0,
+    "steps": 80,
+    "seed": 2024
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 2.0,
+    "depth_m": 5.0,
+    "cell_size": 0.75,
+    "n_floors": 2,
+    "board_interval": 1,
+    "max_passengers": 1,
+    "comfort_distance_m": 2.0,
+    "chat_willingness_mean": 1.0,
+    "chat_range_m": 0.8,
+    "chat_threshold": 0.5,
+    "repulsion_strength": 2.5,
+    "attraction_strength": 0.5,
+    "steps": 400,
+    "seed": 3
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 9.0,
+    "depth_m": 0.8,
+    "cell_size": 0.1,
+    "n_floors": 10,
+    "board_interval": 3,
+    "max_passengers": 60,
+    "comfort_distance_m": 4.0,
+    "chat_willingness_mean": 0.9,
+    "chat_range_m": 0.2,
+    "chat_threshold": 1.0,
+    "repulsion_strength": 5.0,
+    "attraction_strength": 3.0,
+    "steps": 80,
+    "seed": 0
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 0.8,
+    "depth_m": 5.0,
+    "cell_size": 0.5,
+    "n_floors": 10,
+    "board_interval": 5,
+    "max_passengers": 10,
+    "comfort_distance_m": 0.2,
+    "chat_willingness_mean": 0.5,
+    "chat_range_m": 1.5,
+    "chat_threshold": 0.5,
+    "repulsion_strength": 1.0,
+    "attraction_strength": 5.0,
+    "steps": 30,
+    "seed": 77
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 1.6,
+    "depth_m": 5.0,
+    "cell_size": 0.75,
+    "n_floors": 4,
+    "board_interval": 50,
+    "max_passengers": 12,
+    "comfort_distance_m": 2.0,
+    "chat_willingness_mean": 0.5,
+    "chat_range_m": 0.8,
+    "chat_threshold": 2.0,
+    "repulsion_strength": 5.0,
+    "attraction_strength": 0.5,
+    "steps": 14,
+    "seed": 1000000000
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 0.8,
+    "depth_m": 3.0,
+    "cell_size": 0.75,
+    "n_floors": 25,
+    "board_interval": 2,
+    "max_passengers": 1,
+    "comfort_distance_m": 1.6,
+    "chat_willingness_mean": 0.0,
+    "chat_range_m": 0.3,
+    "chat_threshold": 2.0,
+    "repulsion_strength": 9.0,
+    "attraction_strength": 3.0,
+    "steps": 30,
+    "seed": 1000000000
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 0.5,
+    "depth_m": 1.4,
+    "cell_size": 0.1,
+    "n_floors": 2,
+    "board_interval": 11,
+    "max_passengers": 2,
+    "comfort_distance_m": 4.0,
+    "chat_willingness_mean": 0.5,
+    "chat_range_m": 5.0,
+    "chat_threshold": 2.0,
+    "repulsion_strength": 0.3,
+    "attraction_strength": 0.0,
+    "steps": 45,
+    "seed": 1000000000
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 2.0,
+    "depth_m": 1.4,
+    "cell_size": 1.0,
+    "n_floors": 60,
+    "board_interval": 3,
+    "max_passengers": 2,
+    "comfort_distance_m": 1.0,
+    "chat_willingness_mean": 0.5,
+    "chat_range_m": 0.2,
+    "chat_threshold": 1.8,
+    "repulsion_strength": 5.0,
+    "attraction_strength": 0.0,
+    "steps": 150,
+    "seed": 3
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 5.0,
+    "depth_m": 1.4,
+    "cell_size": 1.0,
+    "n_floors": 25,
+    "board_interval": 50,
+    "max_passengers": 5,
+    "comfort_distance_m": 4.0,
+    "chat_willingness_mean": 0.9,
+    "chat_range_m": 5.0,
+    "chat_threshold": 1.8,
+    "repulsion_strength": 0.3,
+    "attraction_strength": 5.0,
+    "steps": 45,
+    "seed": 2024
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 9.0,
+    "depth_m": 3.0,
+    "cell_size": 0.1,
+    "n_floors": 4,
+    "board_interval": 2,
+    "max_passengers": 1,
+    "comfort_distance_m": 4.0,
+    "chat_willingness_mean": 0.9,
+    "chat_range_m": 0.3,
+    "chat_threshold": 0.0,
+    "repulsion_strength": 2.5,
+    "attraction_strength": 0.5,
+    "steps": 150,
+    "seed": 42
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 0.8,
+    "depth_m": 0.8,
+    "cell_size": 0.1,
+    "n_floors": 2,
+    "board_interval": 11,
+    "max_passengers": 1,
+    "comfort_distance_m": 0.2,
+    "chat_willingness_mean": 0.9,
+    "chat_range_m": 0.2,
+    "chat_threshold": 1.8,
+    "repulsion_strength": 1.0,
+    "attraction_strength": 0.5,
+    "steps": 1,
+    "seed": 42
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 9.0,
+    "depth_m": 5.0,
+    "cell_size": 1.0,
+    "n_floors": 4,
+    "board_interval": 90,
+    "max_passengers": 4,
+    "comfort_distance_m": 0.2,
+    "chat_willingness_mean": 0.9,
+    "chat_range_m": 2.0,
+    "chat_threshold": 2.0,
+    "repulsion_strength": 2.5,
+    "attraction_strength": 0.0,
+    "steps": 30,
+    "seed": 3
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 9.0,
+    "depth_m": 1.4,
+    "cell_size": 0.5,
+    "n_floors": 6,
+    "board_interval": 90,
+    "max_passengers": 4,
+    "comfort_distance_m": 1.0,
+    "chat_willingness_mean": 0.0,
+    "chat_range_m": 0.2,
+    "chat_threshold": 2.0,
+    "repulsion_strength": 9.0,
+    "attraction_strength": 1.0,
+    "steps": 150,
+    "seed": 2024
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 5.0,
+    "depth_m": 1.4,
+    "cell_size": 0.5,
+    "n_floors": 4,
+    "board_interval": 2,
+    "max_passengers": 4,
+    "comfort_distance_m": 0.2,
+    "chat_willingness_mean": 0.0,
+    "chat_range_m": 0.3,
+    "chat_threshold": 1.0,
+    "repulsion_strength": 0.3,
+    "attraction_strength": 3.0,
+    "steps": 14,
+    "seed": 77
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 9.0,
+    "depth_m": 3.0,
+    "cell_size": 0.5,
+    "n_floors": 60,
+    "board_interval": 5,
+    "max_passengers": 4,
+    "comfort_distance_m": 0.3,
+    "chat_willingness_mean": 0.0,
+    "chat_range_m": 5.0,
+    "chat_threshold": 0.5,
+    "repulsion_strength": 1.0,
+    "attraction_strength": 0.0,
+    "steps": 30,
+    "seed": 2024
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 3.4,
+    "depth_m": 1.4,
+    "cell_size": 0.75,
+    "n_floors": 25,
+    "board_interval": 3,
+    "max_passengers": 4,
+    "comfort_distance_m": 4.0,
+    "chat_willingness_mean": 1.0,
+    "chat_range_m": 0.3,
+    "chat_threshold": 2.0,
+    "repulsion_strength": 0.3,
+    "attraction_strength": 0.5,
+    "steps": 6,
+    "seed": 3
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 0.5,
+    "depth_m": 3.0,
+    "cell_size": 0.1,
+    "n_floors": 4,
+    "board_interval": 11,
+    "max_passengers": 2,
+    "comfort_distance_m": 1.6,
+    "chat_willingness_mean": 1.0,
+    "chat_range_m": 5.0,
+    "chat_threshold": 0.5,
+    "repulsion_strength": 2.5,
+    "attraction_strength": 0.0,
+    "steps": 45,
+    "seed": 3
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 0.8,
+    "depth_m": 0.8,
+    "cell_size": 0.75,
+    "n_floors": 25,
+    "board_interval": 3,
+    "max_passengers": 1,
+    "comfort_distance_m": 2.0,
+    "chat_willingness_mean": 0.3,
+    "chat_range_m": 0.8,
+    "chat_threshold": 0.5,
+    "repulsion_strength": 0.0,
+    "attraction_strength": 0.5,
+    "steps": 6,
+    "seed": 1000000000
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 5.0,
+    "depth_m": 1.4,
+    "cell_size": 2.0,
+    "n_floors": 10,
+    "board_interval": 3,
+    "max_passengers": 4,
+    "comfort_distance_m": 0.2,
+    "chat_willingness_mean": 1.0,
+    "chat_range_m": 1.5,
+    "chat_threshold": 0.0,
+    "repulsion_strength": 0.0,
+    "attraction_strength": 0.0,
+    "steps": 1,
+    "seed": 77
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 9.0,
+    "depth_m": 3.0,
+    "cell_size": 1.0,
+    "n_floors": 2,
+    "board_interval": 5,
+    "max_passengers": 2,
+    "comfort_distance_m": 0.2,
+    "chat_willingness_mean": 1.0,
+    "chat_range_m": 5.0,
+    "chat_threshold": 0.5,
+    "repulsion_strength": 0.0,
+    "attraction_strength": 5.0,
+    "steps": 6,
+    "seed": 77
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 1.6,
+    "depth_m": 0.8,
+    "cell_size": 0.75,
+    "n_floors": 2,
+    "board_interval": 2,
+    "max_passengers": 2,
+    "comfort_distance_m": 1.6,
+    "chat_willingness_mean": 0.0,
+    "chat_range_m": 0.3,
+    "chat_threshold": 0.5,
+    "repulsion_strength": 9.0,
+    "attraction_strength": 0.5,
+    "steps": 400,
+    "seed": 3
+   }
+  },
+  {
+   "kind": "enhanced",
+   "params": {
+    "width_m": 2.0,
+    "depth_m": 0.8,
+    "cell_size": 0.25,
+    "n_floors": 2,
+    "board_interval": 11,
+    "max_passengers": 6,
+    "comfort_distance_m": 1.0,
+    "chat_willingness_mean": 0.0,
+    "chat_range_m": 2.0,
+    "chat_threshold": 0.5,
+    "repulsion_strength": 5.0,
+    "attraction_strength": 5.0,
+    "steps": 1,
+    "seed": 42
+   }
+  }
+ ]
+}
