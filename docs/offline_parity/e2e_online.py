@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
-"""线上真实页面端到端冒烟：Netlify 纯静态站点（无后端）能否点得动、跑得出图。"""
+"""线上真实页面端到端冒烟：Netlify 纯静态站点（无后端）能否点得动、跑得出图。
+
+默认**不出图**（不往仓库/目录里写任何 PNG）；确需留图时加 --shot：
+    python docs/offline_parity/e2e_online.py --shot
+"""
+import sys
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
+SHOT = "--shot" in sys.argv          # 只有显式加 --shot 才截图
 URL = "https://elevator-digital-twin.netlify.app/"
 BASIC_TXT = "📏 1.104格 平均最近邻距离 📐 1格 最小最近邻距离 ⚠️ 100.0% 社交距离违规率 💬 3 交流对数 ↔️ 1格 交流对平均距离"
 ENH_TXT = "📏 0.533m 平均最近邻距离 📐 0.4m 最小最近邻距离 ⚠️ 100.0% 社交距离违规率 💬 2 交流对数 👥 6人 当前乘客数 🏢 6层 当前楼层"
@@ -54,7 +60,11 @@ with sync_playwright() as pw:
     check(rows == 16, f"批量实验表已出（{rows - 1} 行数据）")
     check(not errs, f"线上页面无 JS 报错（{len(errs)} 条）")
 
-    page.screenshot(path=str(Path(__file__).resolve().parent / "live_netlify.png"), full_page=True)
+    if SHOT:
+        page.screenshot(path=str(Path(__file__).resolve().parent / "live_netlify.png"), full_page=True)
+        print("  （已截图 live_netlify.png）")
+    else:
+        print("  （未截图；如需出图请加 --shot）")
     browser.close()
 
 bad = [m for ok, m in results if not ok]

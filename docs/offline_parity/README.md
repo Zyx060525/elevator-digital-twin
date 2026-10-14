@@ -56,6 +56,10 @@ python docs/offline_parity/e2e_page.py
 python docs/offline_parity/e2e_online.py
 ```
 
+> **关于截图**：上面两个脚本**默认不截图、不写任何 PNG**（保持仓库干净）；
+> 确需留图时显式加 `--shot`。提交用的证据截图请按 `截图指引.md` 自己截，
+> 现成的 4 张 PNG（`_e2e_*.png`、`live_netlify.png`）是 2026-10-14 验证时留下的留证图。
+
 预期输出末尾分别是：
 
 ```

@@ -11,6 +11,9 @@
   1) 三种场景下 DOM 里显示的关键指标文本、批量实验表格必须**逐字相同**；
   2) DOM 里的数值必须与 Python 后端（Flask 测试客户端）返回的数值逐位一致；
   3) 页面无 JS 报错、无未捕获异常。
+
+截图默认**关闭**（不往仓库里写自动生成的图片）；确需留图时显式加 --shot：
+    python docs/offline_parity/e2e_page.py --shot
 """
 from __future__ import annotations
 
@@ -24,6 +27,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
+SHOT = "--shot" in sys.argv          # 只有显式加 --shot 才截图
 HERE = Path(__file__).resolve().parent     # docs/offline_parity/
 ROOT = HERE.parents[1]                      # 仓库根目录
 sys.path.insert(0, str(ROOT))
@@ -221,9 +225,13 @@ def run_scenario(pw, url: str, tag: str, py: dict) -> dict:
     check(not js_errors, f"{tag} 无 JS 报错（{len(js_errors)} 条）" + ("" if not js_errors else f"：{js_errors[:3]}"))
     print(f"  （探测后端产生的网络 404 共 {len(net_notes)} 条，属静态托管下的预期行为）")
 
-    shot = HERE / f"_e2e_{tag}.png"
-    page.screenshot(path=str(shot), full_page=True)
-    print(f"  截图：{shot}")
+    # 截图：默认不出图（避免往仓库里塞自动生成的图片），需要时显式加 --shot
+    if SHOT:
+        shot = HERE / f"_e2e_{tag}.png"
+        page.screenshot(path=str(shot), full_page=True)
+        print(f"  截图：{shot}")
+    else:
+        print("  （未截图；如需出图请加 --shot）")
     browser.close()
     return {"badge": badge, "basic_dom": basic_dom, "enh_dom": enh_dom, "rows": rows, "net_notes": net_notes}
 
