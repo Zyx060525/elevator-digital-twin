@@ -18,3 +18,7 @@ public/
 # 临时下载 / 调试目录
 tmp_*/
 
+# 百度网盘同步时的临时文件
+*.baiduyun.*
+*.baiduyun.uploading.cfg
+

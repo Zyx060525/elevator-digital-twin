@@ -1,0 +1,57 @@
+# 基础版仿真：单次演示（逐 step 打印指标，末态收敛）
+# 复现命令：python -m elevator_twin.run
+# 抓取时间：2026-10-14 12:13:13
+
+============================================================
+单次仿真演示
+============================================================
+初始空间快照（P=乘客, C=交流中, .=空位）：
+  P.PP
+  P..P
+  ...P
+  PP..
+step= 1  avg_dist=1.000  min_dist=1.000  violation=1.000  chat_pairs=0
+step= 2  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step= 3  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step= 4  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step= 5  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step= 6  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step= 7  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step= 8  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step= 9  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step=10  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step=11  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step=12  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step=13  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step=14  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step=15  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step=16  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step=17  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step=18  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step=19  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+step=20  avg_dist=1.104  min_dist=1.000  violation=1.000  chat_pairs=3
+结束空间快照：
+  P.CC
+  .P.C
+  ...C
+  CC..
+
+============================================================
+批量对比实验（交流意愿 × 乘客数）
+============================================================
+ 乘客数  交流意愿  平均最近邻距离  社交距离违规率  交流对数
+   4   0.2    3.000    0.000     0
+   4   0.5    2.000    0.500     1
+   4   0.8    2.000    0.500     1
+   6   0.2    1.609    0.667     0
+   6   0.5    1.333    0.667     2
+   6   0.8    1.333    0.667     2
+   8   0.2    1.280    0.875     0
+   8   0.5    1.104    1.000     3
+   8   0.8    1.000    1.000     4
+  10   0.2    1.124    1.000     0
+  10   0.5    1.000    1.000     3
+  10   0.8    1.000    1.000     3
+  12   0.2    1.000    1.000     0
+  12   0.5    1.000    1.000     3
+  12   0.8    1.000    1.000     5

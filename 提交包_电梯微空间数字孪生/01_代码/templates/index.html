@@ -381,7 +381,10 @@ function readParams(){
 // 同域部署（本地 python webapp.py、或整体部署在 Render）时留空即可；
 // 「Netlify 静态前端 + Render 后端」这种跨域部署时，三种方式任选：
 //   1) 访问时带参数：https://<你的 Netlify 域名>/?api=https://<你的 Render 域名>
-//   2) 在页面 <head> 里加一行：<script>window.API_BASE='https://<你的 Render 域名>'</script>
+//   2) 在页面 head 里加一行 script 标签，给 window.API_BASE 赋值：
+//      window.API_BASE = 'https://<你的 Render 域名>';
+//      注意：本文件内不能出现字面的 script 闭标签，一旦出现必须写成 <\/script>（加反斜杠），
+//      否则 HTML 解析器会在注释处提前结束脚本块，导致其后的 JS 变成页面可见文本、按钮全部失效。
 //   3) 控制台执行一次：localStorage.setItem('apiBase','https://<你的 Render 域名>')
 const API_BASE = (
   new URLSearchParams(location.search).get('api') ||

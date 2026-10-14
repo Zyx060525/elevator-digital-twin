@@ -1,0 +1,28 @@
+# MCP 工具调用链证据：initialize → list_tools → call_tool ×3
+# 复现命令：python -m elevator_twin.mcp_server（mcp 官方客户端真实连接）
+# 抓取时间：2026-10-14 12:13:13
+
+MCP 服务：elevator-twin（elevator_twin.mcp_server，stdio 传输）
+客户端　：mcp 官方 Python SDK（ClientSession + stdio_client）
+
+[1] initialize()   → 已连接客户端；协议 2025-11-25，服务端 elevator-twin v
+[2] list_tools()   → 共 3 个工具：['run_simulation', 'grid_snapshot', 'optimize_social_distance']
+        · run_simulation：运行一次电梯社交距离多智能体仿真，返回关键指标（正常场景）。
+        · grid_snapshot：返回仿真结束时的空间快照（P=普通乘客, C=交流中乘客, .=空位），用于人工核查。
+        · optimize_social_distance：对比低/中/高三档交流意愿下的社交距离指标，供 AGH 反馈处理与结果验证。
+
+[3] call_tool run_simulation({n_passengers: 8, steps: 30})
+        → {"steps": 30, "avg_nearest_distance": 1.1036, "min_nearest_distance": 1.0, "violation_rate": 1.0, "chat_pairs": 3, "chat_pair_distance": 1.0}
+
+[4] call_tool grid_snapshot({steps: 10})
+        P.CC
+        .P.C
+        ...C
+        CC..
+
+[5] call_tool optimize_social_distance({n_passengers: 8, steps: 30})
+         low 意愿档 → {"avg_nearest_distance": 1.2803, "violation_rate": 0.875, "chat_pairs": 0}
+         mid 意愿档 → {"avg_nearest_distance": 1.1036, "violation_rate": 1.0, "chat_pairs": 3}
+        high 意愿档 → {"avg_nearest_distance": 1.0, "violation_rate": 1.0, "chat_pairs": 4}
+
+结论：AGH 经 MCP 协议真实调用仿真工具（而非本地函数直接调用），上表为逐次请求/响应。

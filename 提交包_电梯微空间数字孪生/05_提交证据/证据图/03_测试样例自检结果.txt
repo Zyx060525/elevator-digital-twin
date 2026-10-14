@@ -1,0 +1,29 @@
+# 测试样例一键自检：正常/边界/失败/接口/MCP 共 13 项，全部 PASS
+# 复现命令：python 04_测试样例/run_samples.py
+# 抓取时间：2026-10-14 12:13:13
+
+==============================================================================
+电梯微空间数字孪生 — 测试样例自检（完全离线，无需 Agnes Key）
+==============================================================================
+代码目录：D:\zyx百度备份dell宿舍\zyx百度网盘bak\08轩轩  参加的杂七杂八的活动\黑客松\提交包_电梯微空间数字孪生\01_代码
+样例目录：D:\zyx百度备份dell宿舍\zyx百度网盘bak\08轩轩  参加的杂七杂八的活动\黑客松\提交包_电梯微空间数字孪生\04_测试样例
+------------------------------------------------------------------------------
+[PASS] N1  avg_dist=1.104 min_dist=1.000 violation=1.000 chat_pairs=3（5 项指标均在 0.05 容差内）
+[PASS] N2  15/15 行全部一致：平均距离 3.0（4 人 / 意愿 0.2） → 1.0（8 人 / 意愿 0.8），交流对数 0 → 5
+[PASS] N3  米制网格 4×3（格 0.4m）：avg=0.533m < 舒适距离 1.0m，violation=1.00，第 6 层载客 6 人
+[PASS] B1  满载不崩溃：人数恒为 16、空闲格 0、乘客保持原位，violation=1.00
+[PASS] B2  意愿 0.0：30 步内交流对数恒为 0，仅「社交距离最大化」生效
+[PASS] B3  单人边界：avg / min / violation / chat_pairs 全为 0，无异常、无 NaN
+[PASS] F1  按预期抛出 ValueError：乘客数 17 超过轿厢容量 16
+[PASS] F2  按预期抛出 ValueError：乘客数不能为负：-1
+[PASS] A1  GET /api/health → 200 {'agnes_ready': False, 'status': 'ok'}
+[PASS] A2  POST /api/simulate → 200：metrics 一致、grid 4×4（8 名乘客）、frames 31 帧、curve 为 PNG dataURL
+[PASS] A3  POST /api/sweep → 200：table 15 行 + plot PNG（131 KB base64）
+[PASS] M1  stdio 连接 elevator-twin MCP 服务成功，已注册工具 ['run_simulation', 'grid_snapshot', 'optimize_social_distance']；grid_snapshot 返回 4 行空间快照
+       MCP 调用链：initialize → list_tools → optimize_social_distance → run_simulation → grid_snapshot
+       optimize_social_distance 返回：{"low": {"avg_nearest_distance": 1.2803, "violation_rate": 0.875, "chat_pairs": 0}, "mid": {"avg_nearest_distance": 1.1036, "violation_rate": 1.0, "chat_pairs": 3}, "high": {"avg_nearest_distance": 1.0, "violation_rate": 1.0, "chat_pairs": 4}}
+[PASS] M2  低意愿：距离 1.2803 / 0 交流对 → 高意愿：距离 1.0 / 4 交流对（交流行为压缩社交距离，结论可复现）
+------------------------------------------------------------------------------
+共 13 项：通过 13，失败 0，跳过 0
+ALL PASS
+==============================================================================
