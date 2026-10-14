@@ -1,0 +1,15 @@
+{
+  "id": "F1",
+  "category": "失败",
+  "name": "容量超限：4×4 轿厢（容量 16）放 17 名乘客",
+  "kind": "expect_error",
+  "params": {
+    "width": 4,
+    "height": 4,
+    "n_passengers": 17,
+    "seed": 42
+  },
+  "expect_error_type": "ValueError",
+  "expect_error_contains": "容量",
+  "note": "期望抛出差错并给出可读信息（不静默失败）：乘客数 17 超过轿厢容量 16。"
+}

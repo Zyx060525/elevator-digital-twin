@@ -1,0 +1,102 @@
+# 提交包说明 · 电梯微空间数字孪生
+
+> 作品名称：**电梯微空间数字孪生：社交距离与交流行为耦合的多智能体仿真与治理优化**
+> 赛道：**D. 工程设计与数字世界**（数字孪生 + 系统建模与仿真）
+> 提交内容：代码 / 安装包 / 运行说明 / 测试样例（单文件均 < 200MB）
+
+---
+
+## 一、目录结构（四件套）
+
+```
+提交包_电梯微空间数字孪生/
+├── README_提交说明.md              ← 本文件：总览 + 自检清单
+├── 01_代码/                        ← 【代码】全部源码（可直接运行/审阅）
+│   ├── elevator_twin/              ← 仿真核心包
+│   │   ├── model.py                ← 基础版模型（乘客 / 轿厢 / 指标）
+│   │   ├── model_enhanced.py       ← 增强版（真实尺寸 + 上下客 + 社会力）
+│   │   ├── run.py                  ← 单次仿真 + 批量对比实验
+│   │   ├── visualize.py            ← 指标曲线 / 热力图 / 对比图
+│   │   ├── mcp_server.py           ← MCP 工具服务（供 AGH 调用）
+│   │   ├── agh_loop.py             ← AGH「规划→调用→反馈→验证」闭环
+│   │   ├── agnes_client.py         ← Agnes 模型 HTTP 客户端
+│   │   └── figs/                   ← 已生成的图片（曲线/热力图/对比图）
+│   ├── templates/index.html        ← Web 单页前端
+│   ├── webapp.py                   ← Flask 后端（/api/* 接口）
+│   ├── build_static.py             ← 静态站点构建脚本（Netlify 用）
+│   ├── requirements.txt            ← 依赖清单
+│   ├── netlify.toml / render.yaml  ← 在线部署配置（可选）
+│   ├── README.md                   ← 项目总 README
+│   └── docs/项目摘要与技术信息.md   ← 提交表单可直接复制的技术信息
+├── 02_安装包/                      ← 【安装包】离线依赖（wheel）+ 一键安装脚本
+│   ├── 安装说明.md
+│   ├── 一键安装_Windows.bat / 一键安装_Linux.sh
+│   ├── requirements-lock-windows.txt / requirements-lock-linux.txt  ← 锁定版本清单
+│   ├── wheels_windows_py311/       ← Windows x64 + CPython 3.11 离线 wheel（110 个，97.6 MB）
+│   └── wheels_linux_py311/         ← Linux x86_64 + CPython 3.11 离线 wheel（106 个，99.4 MB）
+├── 03_运行说明/                    ← 【运行说明】
+│   ├── 运行说明.md                 ← 主文档（环境→安装→运行→验证→排错）
+│   ├── 快速开始.txt                ← 3 条命令搞定
+│   └── 部署说明_Netlify_Render.md  ← 在线体验链接的部署步骤（可选）
+└── 04_测试样例/                    ← 【测试样例】正常 / 边界 / 失败 / 接口 / MCP（共 13 项）
+    ├── 测试说明.md
+    ├── 输入样例/*.json             ← 输入参数
+    ├── 预期输出/*.json             ← 预期结果（可自动比对，容差 0.05）
+    ├── run_samples.py              ← 一键跑全部样例并核对（退出码 0 = ALL PASS）
+    ├── _生成预期输出.py            ← 作者工具：重建预期结果（评审无需执行）
+    ├── 一键自检_Windows.bat
+    ├── 一键自检_Linux.sh
+    └── 实际运行输出.txt            ← 真实运行日志（留证）
+```
+
+---
+
+## 二、三分钟验收（评审最快路径）
+
+| 步骤 | 操作 | 期望结果 |
+|---|---|---|
+| 1 | 安装 Python 3.11，双击 `02_安装包\一键安装_Windows.bat` | 输出「依赖校验通过」 |
+| 2 | 双击 `04_测试样例\一键自检_Windows.bat` | **13 项全部 PASS**（正常/边界/失败/接口/MCP），末行 `ALL PASS` |
+| 3 | 进入 `01_代码`，执行 `python webapp.py`，浏览器打开 http://127.0.0.1:5000 | 网页可视化：参数面板 + 空间回放 + 批量实验 |
+| 4 | 执行 `python -m elevator_twin.agh_loop` | 打印 AGH 四步闭环：规划→MCP 调用→反馈→验证 |
+
+> Linux / macOS：把 `.bat` 换成对应的 `.sh` 即可，详见 `03_运行说明/运行说明.md`。
+
+---
+
+## 三、关于 Agnes Key（重要）
+
+- 本提交包**不含任何密钥**（`elevator_twin/.agnes_key` 与 `AGNES_API_KEY` 均未打包，避免泄露）。
+- 运行 AGH 闭环 / Web 的「Agnes 智能分析」需要自备 Agnes 官方 Key，配置方式见
+  `03_运行说明/运行说明.md` 第 5 节；**未配置 Key 时程序自动降级**为确定性文本，
+  仿真与测试样例仍可完整跑通（不联网也能验收）。
+- AGH 闭环的 MCP 工具调用链是本作品的核心证据，运行 `python -m elevator_twin.agh_loop`
+  即可复现并截图（建议作为「AGH 执行记录」上传）。
+
+---
+
+## 四、体积说明
+
+| 内容 | 大小 | 说明 |
+|---|---|---|
+| 01_代码 | 约 0.35 MB | 纯文本 + 4 张 PNG（`elevator_twin/figs/`） |
+| 02_安装包 | 97.6 MB + 99.4 MB | 216 个 `.whl`，**单文件最大 16.0 MB** |
+| 03_运行说明 | 约 16 KB | Markdown / txt |
+| 04_测试样例 | 约 45 KB | JSON + 自检脚本 + 运行日志 |
+| **合计** | **约 197 MB / 270 个文件** | 已实测校验：**无任何单文件超过 200 MB**（最大 16.0 MB） |
+
+若所在平台限制**总大小**，可只保留 `wheels_windows_py311`（97.6 MB，Windows 评审环境）；
+Linux 评审环境则保留 `wheels_linux_py311`（99.4 MB），或直接联网 `pip install -r requirements.txt`。
+
+---
+
+## 五、提交前自检清单
+
+- [x] `01_代码/elevator_twin/.agnes_key` 不存在（已确认未打包，包内无任何密钥）
+- [x] 离线安装包在**全新虚拟环境**中 `--no-index` 安装成功（mesa 2.4.0 / numpy 2.2.6 / pandas 2.3.1 / matplotlib 3.10.3 / flask 3.1.1 / mcp 2.2.0）
+- [x] `04_测试样例` 自检 **13/13 ALL PASS**（源码环境与离线 venv 各跑一遍，日志见 `实际运行输出.txt`）
+- [x] `python -m elevator_twin.agh_loop` 无 Key 也能完整跑通四步闭环（自动降级为确定性文本）
+- [ ] `python webapp.py` 网页正常打开、能出图（建议截图）
+- [ ] `python -m elevator_twin.run` / `epoch` 对比表截图（建议作为「仿真结果」证据）
+- [ ] `docs/项目摘要与技术信息.md` 中【】占位已按实际情况填写（队伍名称、提交人等）
+- [ ] 演示视频 / 在线体验链接 / 公开内容链接已准备好（见该文档「待填清单」）

@@ -10,3 +10,11 @@ elevator_twin/.agnes_key
 
 # 构建产物（Netlify 静态前端，由 build_static.py 生成）
 public/
+
+# 提交包内的第三方离线 wheel（约 197 MB，可用 pip download 一键重建；
+# 如确需纳入 git，请手动执行：git add -f "提交包_电梯微空间数字孪生/02_安装包/wheels_windows_py311"）
+提交包_电梯微空间数字孪生/02_安装包/wheels_*/
+
+# 临时下载 / 调试目录
+tmp_*/
+

@@ -1,0 +1,35 @@
+# ============================================================================
+# Netlify 部署配置（前端静态托管）
+#
+# 本项目是 Python(Flask) 服务：Netlify 的函数运行时只支持 JS/TS，
+# 跑不了 Flask + mesa + matplotlib，因此采用「前端上 Netlify、后端上 Render」：
+#   - Netlify：只托管静态单页（templates/index.html 复制到 public/index.html）
+#   - Render ：运行 Flask，提供 /api/simulate、/api/sweep、/api/agnes 等接口（见 render.yaml）
+#
+# 在 Netlify 导入站点时表单这样填（本文件里的配置会覆盖表单，故表单可留空）：
+#   Base directory      ：留空（仓库根目录）
+#   Build command       ：python build_static.py || python3 build_static.py
+#   Publish directory   ：public
+#   Functions directory ：留空（本仓库不使用 Netlify Functions）
+# ============================================================================
+
+[build]
+  command = "python build_static.py || python3 build_static.py"
+  publish = "public"
+
+[build.environment]
+  # Netlify 构建镜像自带 Python 3.x，这里显式固定大版本，与 Render 侧保持一致。
+  PYTHON_VERSION = "3.11"
+  # ---------------------------------------------------------------------------
+  # ⚠️ 不要在本仓库根目录放 runtime.txt！
+  #
+  # Netlify 新构建镜像用 mise 管理语言版本，会读取根目录的 runtime.txt，且官方要求
+  # 该文件「只写版本号（x.y），不能有结尾换行」，例如 3.11.0。
+  # 一旦写成 Render / Heroku 风格（python-3.11.0），mise 就报：
+  #     mise ERROR failed to install python-3.11.0
+  # 直接导致构建失败 —— 这正是本仓库曾经构建报错的原因，现已删除该文件。
+  #
+  # 两个平台的 Python 版本改用环境变量各自声明，互不干扰：
+  #   Netlify：本文件的 PYTHON_VERSION
+  #   Render ：render.yaml 里的 PYTHON_VERSION = 3.11.0
+  # ---------------------------------------------------------------------------

@@ -1,0 +1,18 @@
+{
+  "id": "N1",
+  "category": "正常",
+  "name": "基础版单次仿真：4×4 轿厢 / 8 名乘客 / 交流意愿 0.5 / 30 步",
+  "kind": "base_single",
+  "params": {
+    "width": 4,
+    "height": 4,
+    "n_passengers": 8,
+    "comfort_distance": 1.5,
+    "chat_willingness_mean": 0.5,
+    "chat_range": 1.5,
+    "chat_threshold": 1.0,
+    "steps": 30,
+    "seed": 42
+  },
+  "note": "期望：模型收敛；未交流乘客最大化最近邻距离，交流对相互靠近被压缩到相邻格（指标与 预期输出/N1_基础_正常.json 容差 0.05 内一致）。"
+}

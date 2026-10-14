@@ -1,0 +1,18 @@
+{
+  "id": "B1",
+  "category": "边界",
+  "name": "满载边界：4×4 轿厢放满 16 人（= 容量，无空闲格）",
+  "kind": "base_single",
+  "params": {
+    "width": 4,
+    "height": 4,
+    "n_passengers": 16,
+    "comfort_distance": 1.5,
+    "chat_willingness_mean": 0.5,
+    "chat_range": 1.5,
+    "chat_threshold": 1.0,
+    "steps": 20,
+    "seed": 42
+  },
+  "note": "期望不崩溃：无空闲格时乘客保持原位（满载边界处理），人数恒为 16，违规率 = 1.0（格距 1.0 < 舒适距离 1.5）。"
+}

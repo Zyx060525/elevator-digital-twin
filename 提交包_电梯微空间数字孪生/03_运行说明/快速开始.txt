@@ -1,0 +1,30 @@
+============================================================
+ 电梯微空间数字孪生 —— 快速开始（30 秒了解怎么跑）
+============================================================
+
+【Windows】
+  1) 安装 Python 3.11（勾选 Add python.exe to PATH）
+  2) 双击  02_安装包\一键安装_Windows.bat          ← 离线装依赖
+  3) 双击  04_测试样例\一键自检_Windows.bat        ← 跑测试样例
+  4) cd 01_代码  &&  python webapp.py             ← 打开 http://127.0.0.1:5000
+
+【Linux】
+  1) 确认 python3 为 3.11：python3 --version
+  2) bash 02_安装包/一键安装_Linux.sh
+  3) bash 04_测试样例/一键自检_Linux.sh
+  4) cd 01_代码 && python3 webapp.py
+
+【五个命令行入口】（都在 01_代码 目录下执行）
+  python -m elevator_twin.run               基础版仿真 + 批量对比实验
+  python -m elevator_twin.model_enhanced    增强版（真实尺寸 + 上下客 + 社会力）
+  python -m elevator_twin.visualize         生成 figs/ 下的 4 张图
+  python -m elevator_twin.agh_loop          AGH 闭环：规划→MCP调用→反馈→验证
+  python webapp.py                          Web 前端（浏览器交互）
+
+【需要联网/Key 的部分】
+  只有「Agnes 智能分析」与 AGH 的 Agnes 真实调用需要 Key：
+      set AGNES_API_KEY=你的Key            (Windows)
+      export AGNES_API_KEY=你的Key         (Linux)
+  未配置 Key 时自动降级为确定性文本，仿真/测试全部照常跑通。
+
+详细说明见：03_运行说明\运行说明.md

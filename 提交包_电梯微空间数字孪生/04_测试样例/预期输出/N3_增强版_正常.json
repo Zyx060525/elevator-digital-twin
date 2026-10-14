@@ -1,0 +1,20 @@
+{
+  "id": "N3",
+  "kind": "enhanced_single",
+  "metrics": {
+    "avg_nearest_distance_m": 0.5333,
+    "min_nearest_distance_m": 0.4,
+    "violation_rate": 1.0,
+    "chat_pairs": 2.0,
+    "current_passengers": 6.0,
+    "current_floor": 6.0
+  },
+  "grid_size": [
+    4,
+    3
+  ],
+  "cell_size_m": 0.4,
+  "note": "米制指标：真实尺寸下平均最近邻距离远小于 1.0m 标准社交距离（违规率恒为 1.0）。",
+  "generated_by": "Python 3.11.9 / mesa 2.4.0 / numpy 2.2.6 / pandas 2.3.1 / matplotlib 3.10.3",
+  "tolerance": 0.05
+}

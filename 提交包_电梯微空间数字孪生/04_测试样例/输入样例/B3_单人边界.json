@@ -1,0 +1,18 @@
+{
+  "id": "B3",
+  "category": "边界",
+  "name": "单人边界：轿厢内仅 1 名乘客（无最近邻）",
+  "kind": "base_single",
+  "params": {
+    "width": 4,
+    "height": 4,
+    "n_passengers": 1,
+    "comfort_distance": 1.5,
+    "chat_willingness_mean": 0.5,
+    "chat_range": 1.5,
+    "chat_threshold": 1.0,
+    "steps": 10,
+    "seed": 42
+  },
+  "note": "期望：无最近邻时指标不报错、不出现 NaN——平均最近邻距离 = 0、违规率 = 0、交流对数 = 0。"
+}

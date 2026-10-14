@@ -1,0 +1,15 @@
+{
+  "id": "F2",
+  "category": "失败",
+  "name": "非法参数：乘客数 = -1",
+  "kind": "expect_error",
+  "params": {
+    "width": 4,
+    "height": 4,
+    "n_passengers": -1,
+    "seed": 42
+  },
+  "expect_error_type": "ValueError",
+  "expect_error_contains": "不能为负",
+  "note": "期望初始化阶段做入参校验并抛 ValueError（乘客数不能为负：-1），避免无效仿真静默通过。"
+}

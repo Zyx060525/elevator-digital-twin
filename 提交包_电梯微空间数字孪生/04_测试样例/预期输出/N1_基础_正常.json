@@ -1,0 +1,20 @@
+{
+  "id": "N1",
+  "kind": "base_single",
+  "metrics": {
+    "avg_nearest_distance": 1.1036,
+    "min_nearest_distance": 1.0,
+    "violation_rate": 1.0,
+    "chat_pairs": 3.0,
+    "chat_pair_distance": 1.0
+  },
+  "snapshot": [
+    "P.CC",
+    ".P.C",
+    "...C",
+    "CC.."
+  ],
+  "note": "seed=42 决定论仿真：末态指标 + 空间快照（P=普通乘客, C=交流中, .=空位）。",
+  "generated_by": "Python 3.11.9 / mesa 2.4.0 / numpy 2.2.6 / pandas 2.3.1 / matplotlib 3.10.3",
+  "tolerance": 0.05
+}

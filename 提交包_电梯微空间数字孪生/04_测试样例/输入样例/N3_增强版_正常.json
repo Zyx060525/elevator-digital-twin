@@ -1,0 +1,23 @@
+{
+  "id": "N3",
+  "category": "正常",
+  "name": "增强版单次仿真：真实尺寸 1.6m×1.4m（网格 4×4、格边长 0.4m）+ 6 层上下客 + 社会力移动",
+  "kind": "enhanced_single",
+  "params": {
+    "width_m": 1.6,
+    "depth_m": 1.4,
+    "cell_size": 0.4,
+    "n_floors": 6,
+    "board_interval": 5,
+    "max_passengers": 6,
+    "comfort_distance_m": 1.0,
+    "chat_willingness_mean": 0.5,
+    "chat_range_m": 0.8,
+    "chat_threshold": 1.0,
+    "repulsion_strength": 1.0,
+    "attraction_strength": 0.5,
+    "steps": 30,
+    "seed": 42
+  },
+  "note": "核心洞察样例：真实电梯尺寸下，即使乘客最大化距离，平均最近邻距离仍约 0.53m，远小于 1.0m 标准社交距离（违规率恒为 1.0）——证明密闭空间社交距离在物理上不可达。"
+}

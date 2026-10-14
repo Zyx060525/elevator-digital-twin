@@ -1,0 +1,18 @@
+{
+  "id": "B2",
+  "category": "边界",
+  "name": "最低交流意愿边界：交流意愿均值 0.0",
+  "kind": "base_single",
+  "params": {
+    "width": 4,
+    "height": 4,
+    "n_passengers": 8,
+    "comfort_distance": 1.5,
+    "chat_willingness_mean": 0.0,
+    "chat_range": 1.5,
+    "chat_threshold": 1.0,
+    "steps": 30,
+    "seed": 42
+  },
+  "note": "期望：交流意愿之和始终达不到阈值 → 交流对数恒为 0，仅「社交距离最大化」规则生效（用于对照交流行为的调制作用）。"
+}

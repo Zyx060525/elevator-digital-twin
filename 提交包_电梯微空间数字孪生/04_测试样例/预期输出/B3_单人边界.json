@@ -1,0 +1,14 @@
+{
+  "id": "B3",
+  "kind": "base_single",
+  "metrics": {
+    "avg_nearest_distance": 0.0,
+    "min_nearest_distance": 0.0,
+    "violation_rate": 0.0,
+    "chat_pairs": 0.0,
+    "chat_pair_distance": 0.0
+  },
+  "note": "单人边界：无最近邻 → 各指标为 0 且不报错/不出现 NaN。",
+  "generated_by": "Python 3.11.9 / mesa 2.4.0 / numpy 2.2.6 / pandas 2.3.1 / matplotlib 3.10.3",
+  "tolerance": 0.05
+}
