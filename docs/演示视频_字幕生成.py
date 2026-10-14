@@ -97,16 +97,75 @@ for a, b, txt in CUES:
     prev_end = b
 
 import time
-data = "\n".join(lines)
-for attempt in range(10):  # 百度网盘同步/杀软可能短暂占用文件，重试
-    try:
-        OUT.write_text(data, encoding="utf-8")
-        break
-    except PermissionError:
-        if attempt == 9:
-            raise
-        time.sleep(1.5)
+
+
+def write_retry(path, text):
+    """百度网盘同步/杀软可能短暂占用文件，写入失败时重试。"""
+    for attempt in range(10):
+        try:
+            path.write_text(text, encoding="utf-8")
+            return
+        except PermissionError:
+            if attempt == 9:
+                raise
+            time.sleep(1.5)
+
+
+write_retry(OUT, "\n".join(lines))
 total = CUES[-1][1]
+
+# ---------------- 纯文字字幕稿（按镜分组 + 连续旁白版） ----------------
+SHOTS = [
+    (0.0, 12.0, "镜 1 片头"),
+    (12.0, 30.0, "镜 2 问题与目标"),
+    (30.0, 60.0, "镜 3 作品内容：双模型"),
+    (60.0, 85.0, "镜 4 基础版结果"),
+    (85.0, 115.0, "镜 5 增强版：真实尺寸下的硬结论"),
+    (115.0, 140.0, "镜 6 核心创新：交流行为压缩距离"),
+    (140.0, 180.0, "镜 7 核心证据：AGH 四步闭环 + MCP 调用链"),
+    (180.0, 215.0, "镜 8 网页交互：可玩的实验台"),
+    (215.0, 235.0, "镜 9 真一致：纯静态站点也能跑"),
+    (235.0, 250.0, "镜 10 工程完备性"),
+    (250.0, 265.0, "镜 11 应用价值与收尾"),
+]
+
+
+def mmss(sec: float) -> str:
+    s = int(sec)
+    return f"{s // 60:02d}:{s % 60:02d}"
+
+
+def in_shot(a, a0, b0):
+    return a0 - 0.01 <= a < b0 - 0.01
+
+
+total_txt, total_chars = [], sum(len(t) for _, _, t in CUES)
+total_txt += [
+    "演示视频字幕文字稿 · 电梯微空间数字孪生",
+    f"总时长 4:25（{total:.0f} 秒）｜{len(CUES)} 条字幕｜旁白 {total_chars} 字｜平均语速 {total_chars / total:.2f} 字/秒",
+    "用法：按镜顺序照读即可；也可把「按镜逐条」部分直接贴进剪辑软件做字幕（时间码为 mm:ss）。",
+    "",
+    "=" * 46,
+    "一、按镜逐条（可直接做字幕）",
+    "=" * 46,
+    "",
+]
+for a0, b0, name in SHOTS:
+    total_txt.append(f"【{name}｜{mmss(a0)}–{mmss(b0)}】")
+    for a, _, t in CUES:
+        if in_shot(a, a0, b0):
+            total_txt.append(f"{mmss(a)}  {t}")
+    total_txt.append("")
+
+total_txt += ["=" * 46, "二、连续旁白版（整段，配音照着读）", "=" * 46, ""]
+for a0, b0, name in SHOTS:
+    para = "".join(t for a, _, t in CUES if in_shot(a, a0, b0))
+    total_txt.append(f"{name}｜{para}")
+    total_txt.append("")
+
+TXT = OUT.with_suffix(".txt")
+write_retry(TXT, "\n".join(total_txt))
+print(f"文字稿输出 = {TXT}  大小 {TXT.stat().st_size} 字节  行数 {len(total_txt)}")
 print(f"字幕条数 = {len(CUES)}    覆盖 00:00 - {ts(total)[:8]}    总时长 = {total:.1f}s = {int(total // 60)}:{int(total % 60):02d}")
 print(f"平均语速 = {sum(len(t) for _, _, t in CUES) / total:.2f} 字/秒（旁白总字数 {sum(len(t) for _, _, t in CUES)}）")
 print(f"输出文件 = {OUT}  大小 {OUT.stat().st_size} 字节")
