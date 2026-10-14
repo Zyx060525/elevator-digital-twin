@@ -12,6 +12,7 @@
 | 固定用例（含边界：单人 / 满载 16 人 / 容量上限 / 意愿 0 与 1 等） | 27 组 | 全部逐字段一致 ✅ |
 | 随机用例（含越界参数、2×2~50×30 网格、米制小数尺寸、steps 1~400、seed 0~1e9） | 60 组 | 全部逐字段一致 ✅ |
 | 真实浏览器端到端（纯静态托管 / 同域 Flask / 跨域 `?api=`，各跑一次基础版 + 增强版 + 批量实验） | 3 场景 × 19 项 | 57/57 通过 ✅ |
+| **线上真实站点**（Netlify 纯静态 `https://elevator-digital-twin.netlify.app/`，无后端可用） | 9 项 | 9/9 通过 ✅ |
 
 比对字段：`metrics`（全部指标）、`grid`（每格状态与最近邻距离）、`frames`（逐帧快照文字网格）、
 `floors` / `passengers`（增强版楼层与人数序列）、`unit`。曲线图是图片，不参与数值比对。
@@ -29,7 +30,9 @@
 | `engine_parity_py.py` | 用 Flask 测试客户端跑出 Python 后端的**标准答案** `engine_py_out*.json` |
 | `engine_parity_js.js` | 从 `templates/index.html` 抽出内置引擎，在 Node 里跑同批用例并与标准答案**逐字段比对** |
 | `e2e_page.py` | Playwright 真实浏览器端到端：静态托管降级 / 同域后端 / 跨域后端三场景 |
+| `e2e_online.py` | Playwright **线上站点**冒烟：直接访问 Netlify 站点，校验降级、出图、出表、无报错 |
 | `_e2e_*.png` | 三场景的整页截图（留证） |
+| `live_netlify.png` | 线上 Netlify 站点的整页截图（留证） |
 
 ## 三、复现步骤
 
@@ -48,6 +51,9 @@ node   docs/offline_parity/engine_parity_js.js
 
 # 2) 真实浏览器端到端（会临时起静态服务器与 Flask，跑完自动关闭）
 python docs/offline_parity/e2e_page.py
+
+# 3) 线上站点冒烟（直接访问已部署的 Netlify 站点，需联网）
+python docs/offline_parity/e2e_online.py
 ```
 
 预期输出末尾分别是：
@@ -57,7 +63,17 @@ python docs/offline_parity/e2e_page.py
 全部 60 组：浏览器内置引擎与 Python 后端逐字段一致 ✅
 ===== 端到端验证：57/57 项通过 =====
 全部通过 ✅
+===== 线上站点冒烟：9/9 项通过 =====
+全部通过 ✅
 ```
+
+线上冒烟的具体结论（2026-10-14 实测，`live_netlify.png`）：
+
+- 引擎徽章自动显示「浏览器内置引擎（离线）」——Netlify 上探测不到 `/api/*` 时正确降级；
+- 基础版点一次「运行仿真」得到 `📏 1.104格 / 📐 1格 / ⚠️ 100.0% / 💬 3 交流对数`，**与 Python 后端 N1 用例逐字一致**；
+- 增强版得到 `📏 0.533m / 📐 0.4m / ⚠️ 100.0% / 💬 2 / 👥 6人 / 🏢 6层`，同样与 Python 一致；
+- 16 格网格（8 个乘客）、曲线图 PNG、帧标签「第 30 步」、批量实验表 15 行全部正常出图出表；
+- 全流程 0 条 JS 报错。
 
 ## 四、内置引擎的几条关键口径（与 Python 对齐）
 
