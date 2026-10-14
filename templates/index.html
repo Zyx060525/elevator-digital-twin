@@ -216,10 +216,10 @@
         <button id="btn-api-check" class="btn-ghost btn-mini">重新检测后端</button>
       </div>
       <div class="engine-row">
-        <input id="api-input" class="api-input" type="text" placeholder="Python 后端地址（可选）https://xxx.onrender.com">
+        <input id="api-input" class="api-input" type="text" placeholder="Python 后端地址（可选）https://你的服务名.onrender.com">
         <button id="btn-api-save" class="btn-ghost btn-mini">保存</button>
       </div>
-      <div id="engine-note" class="engine-note">检测不到 Python 后端时自动使用浏览器内置引擎（离线模式），模型规则与指标口径与 Python 版一致。</div>
+      <div id="engine-note" class="engine-note">未配置 / 检测不到 Python 后端时自动使用浏览器内置引擎（离线模式），模型规则与指标口径与 Python 版一致；填入真实后端地址后会自动重试唤醒（覆盖 Render 免费实例冷启动）。</div>
     </div>
   </aside>
   <section class="results">
@@ -1259,42 +1259,178 @@ function setEngine(mode, note, warn){
     badge.textContent = mode === 'python' ? 'Python 后端引擎' : '浏览器内置引擎（离线）';
     badge.className = 'engine-badge ' + (mode === 'python' ? 'ok' : 'alt');
   }
+  setEngineNote(note || (mode === 'python'
+    ? '已连接 Python 后端（Flask + mesa + matplotlib）。'
+    : '检测不到 Python 后端，已启用浏览器内置引擎（离线模式）：模型规则、指标口径与 Python 版一致。'), warn);
+}
+
+function setEngineNote(text, warn){
   const el = $('engine-note');
   if(el){
-    el.textContent = note || (mode === 'python'
-      ? '已连接 Python 后端（Flask + mesa + matplotlib）。'
-      : '检测不到 Python 后端，已启用浏览器内置引擎（离线模式）：模型规则、指标口径与 Python 版一致。');
+    el.textContent = text;
     el.classList.toggle('warn', !!warn);
   }
 }
 
-async function detectBackend(){
+/* ============================================================================
+   后端探测 / 冷启动唤醒
+   ----------------------------------------------------------------------------
+   旧逻辑的两个坑（表现为「明明部署了后端，页面却一直显示离线」）：
+     1) 只在页面加载时探测一次、超时 5 秒，失败就把 apiReady 置为 false；
+        而 callEngine() 里 `apiReady === false` 会直接短路到内置引擎，
+        于是**再也不会重试** —— Render 免费实例冷启动 30~60 秒，首访必然中招；
+     2) 后端地址不做规范化与校验，填了没有协议头的地址或示例占位符也会静默失败。
+   现逻辑：
+     probeBackend()  区分「这个地址上没有后端（静态托管返回 HTML）」与
+                     「后端暂时连不上（超时 / DNS / 服务未起）」并给出可读原因；
+     applyProbe()    统一落状态：徽章仍只有「Python 后端引擎 / 浏览器内置引擎（离线）」两种；
+     wakeBackend()   仅在显式配置了后端地址时按退避重试（约 70 秒，覆盖冷启动），
+                     纯静态托管不重试（避免反复打 404）；
+     callEngine()    运行前若距上次失败已超过 15 秒，先复探一次，后端醒来即自动切回。
+   ========================================================================== */
+const WAKE_DELAYS = [3000, 6000, 12000, 20000, 30000];   // 首次立即探、之后退避，累计约 71 秒
+const PROBE_RETRY_MS = 15000;        // 失败后多久允许再自动复探一次
+let waking = false;
+let probingPromise = null;            // 进行中的探测（供 callEngine 复用，避免重复请求）
+let backendDisabled = false;         // 地址被判定为示例占位符 → 不做自动重试
+let lastProbeAt = 0;                 // 上次探测结束时刻（ms）
+let lastProbe = null;                // 上次探测结果 {ok, kind, reason}
+
+/** 把用户填的地址规范化：补协议头、去尾斜杠、丢掉多余的 query/hash。 */
+function normalizeApiBase(v){
+  let s = String(v == null ? '' : v).trim();
+  if(!s) return '';
+  s = s.replace(/[?#].*$/, '').replace(/\/+$/, '');
+  if(!/^https?:\/\//i.test(s)){
+    if(!/^[A-Za-z0-9._-]+(:\d+)?(\/.*)?$/.test(s)) return '';          // 不是域名/IP，判为非法
+    s = (/^(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i.test(s) ? 'http://' : 'https://') + s;
+  }
   try{
-    const r = await jsFetchWithTimeout(API_BASE + '/api/health', {method: 'GET'}, 5000);
-    if(!r.ok) return false;
-    const ct = (r.headers.get('content-type') || '').toLowerCase();
-    if(!ct.includes('json')) return false;      // 纯静态托管只会返回 404 的 HTML 页面
-    const d = await r.json();
-    return !!d && d.status === 'ok';
-  }catch(e){ return false; }
+    const u = new URL(s);
+    if(!u.hostname) return '';
+    return (u.origin + u.pathname).replace(/\/+$/, '');
+  }catch(e){ return ''; }
+}
+
+/** 拦截示例占位符（输入框提示词里那个 xxx.onrender.com 就属于这种）。 */
+function apiLooksPlaceholder(base){
+  const host = base.replace(/^https?:\/\//i, '').split('/')[0].toLowerCase();
+  return /(^|\.)xxx(\.|$)/i.test(host) || /^your[-_]/i.test(host)
+      || /(^|\.)example\.(com|org|net)$/i.test(host) || /(^|\.)example$/i.test(host);
+}
+
+/** 探测一次 /api/health，返回 {ok, kind, reason, payload}。 */
+async function probeBackend(timeoutMs){
+  const ms = timeoutMs || 6000;
+  const url = API_BASE + '/api/health';
+  let r;
+  try{
+    r = await jsFetchWithTimeout(url, {method: 'GET', cache: 'no-store'}, ms);
+  }catch(e){
+    const m = (e && e.message) ? e.message : String(e);
+    const timeout = /超时|abort/i.test(m);
+    return {ok: false, kind: timeout ? 'timeout' : 'network',
+            reason: timeout
+              ? ('请求 ' + url + ' 超过 ' + Math.round(ms / 1000) + ' 秒未响应（后端正在冷启动或未部署）')
+              : ('无法连接 ' + url + '（' + m + '）—— 域名不存在 / 服务未部署 / 网络被拦截')};
+  }
+  const ct = (r.headers.get('content-type') || '').toLowerCase();
+  if(!ct.includes('json')){
+    return {ok: false, kind: 'static',
+            reason: '地址 ' + (API_BASE || '当前域名') + '/api/health 返回的是 HTML 而不是 JSON（HTTP '
+                    + r.status + '）—— 该地址上没有 Python 后端'};
+  }
+  let d = null;
+  try{ d = await r.json(); }catch(e){ d = null; }
+  if(!d || d.status !== 'ok'){
+    return {ok: false, kind: 'badpayload',
+            reason: '地址 ' + (API_BASE || '当前域名') + '/api/health 的响应里没有 status=ok（HTTP '
+                    + r.status + '）—— 该地址被别的服务占用'};
+  }
+  return {ok: true, kind: 'ok', payload: d};
+}
+
+/** 统一落状态：徽章 + 提示文案。 */
+function applyProbe(res){
+  lastProbe = res;
+  lastProbeAt = Date.now();
+  apiReady = !!res.ok;
+  if(res.ok){
+    setEngine('python');
+  }else if(!API_BASE){
+    setEngine('builtin', '当前页面是纯静态托管（未配置 Python 后端地址），已启用浏览器内置引擎（离线模式）：'
+      + '模型规则、指标口径与 Python 版逐位一致。如需真实后端，把 Render 地址填进上面的输入框并点「保存」。', true);
+  }else{
+    setEngine('builtin', '检测不到 Python 后端，已启用浏览器内置引擎（离线模式）：模型规则、指标口径与 Python 版一致。'
+      + '原因：' + res.reason, true);
+  }
+  return apiReady;
+}
+
+/** 探测并落状态；进行中的探测会被复用（同一个请求不会并发打两次）。 */
+function doProbe(timeoutMs){
+  if(probingPromise) return probingPromise;
+  probingPromise = probeBackend(timeoutMs)
+    .then(res => { applyProbe(res); return res; })
+    .finally(() => { probingPromise = null; });
+  return probingPromise;
+}
+
+/** 冷启动唤醒：只在显式配置了后端地址时重试（纯静态托管保持单次探测）。 */
+async function wakeBackend(){
+  if(waking || backendDisabled) return apiReady === true;
+  waking = true;
+  const t0 = Date.now();
+  try{
+    for(let i = 0; i <= WAKE_DELAYS.length; i++){
+      if(i) await new Promise(r => setTimeout(r, WAKE_DELAYS[i - 1]));
+      const res = await doProbe(8000);
+      if(res.ok){
+        if(Date.now() - t0 > 3000){
+          setEngine('python', '已连接 Python 后端（Flask + mesa + matplotlib）：' + API_BASE
+            + '，冷启动唤醒用时约 ' + ((Date.now() - t0) / 1000).toFixed(1) + ' 秒。');
+        }
+        return true;
+      }
+      if(i < WAKE_DELAYS.length){
+        setEngineNote('暂未连上 Python 后端（' + res.reason + '），正在自动重试唤醒……第 '
+          + (i + 2) + '/' + (WAKE_DELAYS.length + 1) + ' 次（最长约 70 秒，覆盖 Render 免费实例冷启动）。', true);
+      }
+    }
+  }finally{
+    waking = false;
+  }
+  return false;
 }
 
 /** 优先走后端；只有「后端不可达」才回退到内置引擎（业务参数错误仍原样抛出）。 */
 async function callEngine(url, params, localFn){
-  if(apiReady === false) return localFn(params);
-  try{
-    const d = await post(url, params);
-    apiReady = true;
-    setEngine('python');
-    return d;
-  }catch(e){
-    if(!(e instanceof BackendUnavailable)) throw e;
-    apiReady = false;
-    const d = localFn(params);
-    d._degraded = e.message;
-    setEngine('builtin', '后端不可用（' + e.message + '），已改用浏览器内置引擎完成本次仿真，数值口径与 Python 版一致。', true);
-    return d;
+  if(backendDisabled) return localFn(params);               // 存的是示例地址：直接用内置引擎
+  if(apiReady === null){
+    // 首次探测还没落定（例如页面刚打开就点了运行）：等它出结果，别急着按离线算。
+    if(probingPromise){ try{ await probingPromise; }catch(e){} }
+    else await doProbe(6000);
+  }else if(API_BASE && Date.now() - lastProbeAt > PROBE_RETRY_MS){
+    // 距上次探测失败已超过 15 秒：复探一次（后端可能刚被唤醒 / 刚部署完），成功即自动切回 Python 引擎。
+    setEngineNote('正在复检 Python 后端 ' + API_BASE + '/api/health ……');
+    await doProbe(8000);
   }
+  if(apiReady === true){
+    try{
+      const d = await post(url, params);
+      return d;
+    }catch(e){
+      if(!(e instanceof BackendUnavailable)) throw e;      // 业务参数错误（如 400）照常抛出
+      applyProbe({ok: false, kind: 'network', reason: e.message});
+      if(API_BASE) wakeBackend();                          // 后台继续尝试唤醒，恢复后下次运行自动走 Python
+      const d = localFn(params);
+      d._degraded = e.message;
+      setEngineNote('后端不可用（' + e.message + '），已改用浏览器内置引擎完成本次仿真，数值口径与 Python 版一致。', true);
+      return d;
+    }
+  }
+  if(API_BASE) wakeBackend();                              // 已知不可用：直接算，同时后台继续唤醒
+  return localFn(params);
 }
 
 // ===== 后端地址（API Base）=====
@@ -1305,20 +1441,23 @@ async function callEngine(url, params, localFn){
 //      window.API_BASE = 'https://<你的 Render 域名>';
 //      注意：本文件内不能出现字面的 script 闭标签，一旦出现必须写成 <\/script>（加反斜杠），
 //      否则 HTML 解析器会在注释处提前结束脚本块，导致其后的 JS 变成页面可见文本、按钮全部失效。
-//   3) 控制台执行一次：localStorage.setItem('apiBase','https://<你的 Render 域名>')
-const API_BASE = (
+//   3) 页面输入框里填地址点「保存」：等价于 localStorage.setItem('apiBase','https://<你的 Render 域名>')
+// 无论哪种方式都会走 normalizeApiBase()：补协议头、去尾斜杠、丢掉 ?query#hash。
+// 注意：从 https 页面直连 http 后端（如本机 http://127.0.0.1:5000）可能被浏览器的
+// 混合内容策略拦截，本机演示建议直接打开 http://127.0.0.1:5000（同域，无需配置）。
+const API_BASE = normalizeApiBase(
   new URLSearchParams(location.search).get('api') ||
   window.API_BASE ||
   localStorage.getItem('apiBase') ||
   ''
-).replace(/\/+$/, '');
+);
 
 async function post(url, body){
   let r;
   try{
     r = await jsFetchWithTimeout(API_BASE + url, {
       method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
-    }, 25000);
+    }, 40000);   // 40s：覆盖 Render 免费实例刚被唤醒后的首个请求（mesa/matplotlib 首次导入较慢）
   }catch(e){
     throw new BackendUnavailable((API_BASE || '当前域名') + ' 上没有可用的 Python 后端（' + (e && e.message ? e.message : e) + '）');
   }
@@ -1470,23 +1609,44 @@ $('willingness2').addEventListener('input', function(){ $('v-w2').textContent = 
 // ===== 引擎状态：优先用 Python 后端，探测不到就用浏览器内置引擎 =====
 $('api-input').value = API_BASE || '';
 $('btn-api-save').onclick = () => {
-  const v = ($('api-input').value || '').trim().replace(/\/+$/, '');
+  const raw = ($('api-input').value || '').trim();
+  const v = normalizeApiBase(raw);
+  if(raw && !v){
+    setEngineNote('后端地址格式不对：「' + raw + '」不是合法地址。请填完整域名，例如 '
+      + 'https://elevator-digital-twin.onrender.com（http:// 可省略，本机可填 127.0.0.1:5000）。', true);
+    return;                                   // 不写进 localStorage，也不 reload，避免静默变离线
+  }
+  if(v && apiLooksPlaceholder(v)){
+    setEngineNote('「' + v + '」看起来是文档里的示例占位符，不是真实服务地址。请在 Render 控制台复制你的'
+      + ' Web Service 地址（形如 https://xxx-xxxx.onrender.com）后再保存。', true);
+    return;
+  }
   if(v) localStorage.setItem('apiBase', v); else localStorage.removeItem('apiBase');
   location.reload();
 };
 $('btn-api-check').onclick = async () => {
   const badge = $('engine-badge');
-  badge.textContent = '检测中…'; badge.className = 'engine-badge';
-  apiReady = null;
-  const ok = await detectBackend();
-  apiReady = ok;
-  setEngine(ok ? 'python' : 'builtin');
+  if(badge){ badge.textContent = '检测中…'; badge.className = 'engine-badge'; }
+  apiReady = null; lastProbeAt = 0; probingPromise = null;
+  setEngineNote('正在检测 Python 后端 ' + (API_BASE || '当前域名') + '/api/health ……');
+  await doProbe(8000);
+  if(API_BASE && apiReady !== true) await wakeBackend();     // 配置了后端地址但没连上 → 继续退避唤醒
 };
 (async function initEngine(){
   apiReady = null;
-  const ok = await detectBackend();
-  apiReady = ok;
-  setEngine(ok ? 'python' : 'builtin');
+  if(!API_BASE){
+    await doProbe(6000);                                     // 同域或纯静态：探一次即可
+    return;
+  }
+  if(apiLooksPlaceholder(API_BASE)){
+    // 地址是文档里的示例（不存在的域名）：不再反复重试，直接把状态说清楚。
+    apiReady = false; lastProbeAt = Date.now(); backendDisabled = true;
+    setEngine('builtin', '已保存的后端地址「' + API_BASE + '」是文档示例占位符（该域名不存在），请换成你在 Render '
+      + '控制台复制的真实地址后点「保存」。当前先使用浏览器内置引擎（离线模式），模型规则、指标口径与 Python 版一致。', true);
+    return;
+  }
+  setEngineNote('正在检测 Python 后端 ' + API_BASE + '/api/health ……（首次访问可能是冷启动，最长约 70 秒自动重试）');
+  await wakeBackend();                                       // 配置了地址：探测失败会自动退避重试
 })();
 </script>
 </body>

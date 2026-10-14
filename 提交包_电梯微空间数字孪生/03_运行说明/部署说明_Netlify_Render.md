@@ -69,7 +69,8 @@ Netlify → Add new site → Import an existing project，表单四栏这样填�
 | `mise ERROR failed to install python-3.11.0` | 根目录 `runtime.txt` 内容 `python-3.11.0`（Render/Heroku 格式），Netlify 新镜像用 mise 只认纯版本号 `x.y` 且不能有 CRLF | **本项目已删除 `runtime.txt`**，Python 版本改用环境变量 `PYTHON_VERSION=3.11` 声明 |
 | 构建成功但页面空白 | 发布目录填错 | Publish directory 必须是 `public`（`build_static.py` 的输出目录） |
 | 页面能开、点击报「连不上后端」 | 前端与后端跨域/地址不对 | 访问时加 `?api=https://<Render 域名>`；后端已全局放行 CORS，可用 `CORS_ORIGIN` 收紧 |
-| 首次请求很慢（>30s） | Render 免费实例冷启动 | 先访问一次后端 `/api/health` 预热 |
+| 首次请求很慢（>30s）、徽章长时间显示「浏览器内置引擎（离线）」 | Render 免费实例冷启动（30~60 秒） | **页面会自动退避重试唤醒（3s→6s→12s→20s→30s，累计约 70 秒），后端起来后徽章无需刷新自动变为「Python 后端引擎」并提示唤醒秒数**；也可先访问一次后端 `/api/health` 预热 |
+| 填了后端地址点「保存」后仍提示离线 | 地址是文档里的示例占位符 / 格式不合法 | 页面会内联提示（占位符会被拒绝保存，非法地址提示「格式不对」）；请从 Render 控制台复制 Web Service 地址（形如 `https://xxx-xxx.onrender.com`）再保存 |
 
 ---
 
