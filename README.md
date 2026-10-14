@@ -29,6 +29,9 @@ templates/
 └── index.html           # 单页前端：参数面板 + 快照回放 + 批量实验 + Agnes 分析
 docs/
 └── 项目摘要与技术信息.md   # 提交材料模板
+build_static.py          # 构建脚本：把 templates/index.html 复制到 public/（Netlify 发布目录）
+netlify.toml             # Netlify 部署配置（静态前端）
+render.yaml              # Render 部署配置（Flask 后端）
 requirements.txt
 ```
 
@@ -57,6 +60,46 @@ python -m elevator_twin.agh_loop
 # Web 前端：浏览器打开 http://127.0.0.1:5000（参数调节 + 快照回放 + 批量实验 + Agnes 分析）
 python webapp.py
 ```
+
+## 部署
+
+本项目是 Python(Flask) 服务：Netlify 的函数运行时只支持 JS/TS，**无法运行 Flask + mesa + matplotlib**，
+因此采用「**前端上 Netlify、后端上 Render**」两段式部署，仓库里已备好 `netlify.toml` 与 `render.yaml`。
+
+### 1. 后端：Render（提供 /api/* 接口）
+1. Render → **New → Blueprint** → 选择本仓库，自动读取 `render.yaml`；
+2. 在环境变量里填 `AGNES_API_KEY`（Agnes 官方 Key，**严禁提交进仓库**）；
+3. 部署成功后记下地址，例如 `https://elevator-digital-twin.onrender.com`。
+
+### 2. 前端：Netlify（托管静态单页）
+导入本仓库时按下表填写（`netlify.toml` 内是同样的值，两边填一处即可）：
+
+| 字段 | 填写内容 |
+|---|---|
+| Base directory | 留空（仓库根目录） |
+| Build command | `python build_static.py` |
+| Publish directory | `public` |
+| Functions directory | 留空（本项目不使用 Netlify Functions） |
+
+> `netlify.toml` 的构建命令带了 `\|\| python3 build_static.py` 兜底；本地也可直接执行：
+
+```bash
+python build_static.py   # 生成 public/index.html（public/ 已在 .gitignore 中忽略）
+```
+
+### 3. 让前端找到后端（跨域）
+Netlify 域名与 Render 域名不同，需要指明后端地址，三种方式任选其一：
+- **URL 参数**（最省事）：`https://<你的 Netlify 域名>/?api=https://<你的 Render 域名>`
+- 页面里写死：在 `<head>` 内加 `<script>window.API_BASE='https://<你的 Render 域名>'</script>`
+- 控制台设置一次：`localStorage.setItem('apiBase','https://<你的 Render 域名>')`
+
+同域部署（例如直接访问 Render 的站点地址）时**无需任何配置**，前端自动请求同域 `/api/*`。
+
+### 常见问题
+- **Netlify 构建日志报 Python 版本错误**：仓库根目录的 `runtime.txt` 是 Render 格式（`python-3.11.0`）。
+  删除该文件即可 —— `render.yaml` 里已用环境变量 `PYTHON_VERSION` 声明同一版本，Netlify 侧也在 `netlify.toml` 中指定。
+- **页面能打开，但点按钮提示「连不上后端」**：静态前端找不到 Flask 后端，按上面第 3 步用 `?api=` 指定后端地址。
+- **图表中文变方块**：后端需要 CJK 字体；`render.yaml` 里已 `apt-get install fonts-noto-cjk`，换平台请自行安装字体。
 
 ## MCP 集成（供 AGH 调用）
 ```bash

@@ -1,0 +1,22 @@
+# ============================================================================
+# Netlify 部署配置（前端静态托管）
+#
+# 本项目是 Python(Flask) 服务：Netlify 的函数运行时只支持 JS/TS，
+# 跑不了 Flask + mesa + matplotlib，因此采用「前端上 Netlify、后端上 Render」：
+#   - Netlify：只托管静态单页（templates/index.html 复制到 public/index.html）
+#   - Render ：运行 Flask，提供 /api/simulate、/api/sweep、/api/agnes 等接口（见 render.yaml）
+#
+# 在 Netlify 导入站点时表单这样填（本文件里的配置会覆盖表单，故表单可留空）：
+#   Base directory      ：留空（仓库根目录）
+#   Build command       ：python build_static.py || python3 build_static.py
+#   Publish directory   ：public
+#   Functions directory ：留空（本仓库不使用 Netlify Functions）
+# ============================================================================
+
+[build]
+  command = "python build_static.py || python3 build_static.py"
+  publish = "public"
+
+[build.environment]
+  # Netlify 构建镜像自带 Python 3.x，这里显式固定大版本，与 Render 侧保持一致
+  PYTHON_VERSION = "3.11"

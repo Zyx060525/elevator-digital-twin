@@ -7,3 +7,6 @@ __pycache__/
 elevator_twin/.agnes_key
 .agnes_key
 .env
+
+# 构建产物（Netlify 静态前端，由 build_static.py 生成）
+public/

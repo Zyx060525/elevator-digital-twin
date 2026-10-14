@@ -38,6 +38,19 @@ TEMPLATES = os.path.join(ROOT, "templates")
 
 app = Flask(__name__)
 
+# 前后端同域部署（本地 python webapp.py / Render 一体化）时无需跨域；
+# 前端放在 Netlify、后端放在 Render 时属跨域调用，这里统一放行。
+# 想收紧权限可设置环境变量 CORS_ORIGIN=https://你的站点域名。
+CORS_ORIGIN = os.environ.get("CORS_ORIGIN", "*")
+
+
+@app.after_request
+def _add_cors_headers(resp):
+    resp.headers["Access-Control-Allow-Origin"] = CORS_ORIGIN
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return resp
+
 
 def _fig_to_dataurl(fig) -> str:
     buf = io.BytesIO()
